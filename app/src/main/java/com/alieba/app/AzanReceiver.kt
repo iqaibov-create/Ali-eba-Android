@@ -1,0 +1,3 @@
+package com.alieba.app
+import android.content.*; import android.app.*; import android.media.MediaPlayer; import androidx.core.app.NotificationCompat
+class AzanReceiver:BroadcastReceiver(){override fun onReceive(c:Context,i:Intent){val p=i.getStringExtra("prayer")?:"Namaz";val n=NotificationCompat.Builder(c,"azan").setSmallIcon(android.R.drawable.ic_lock_idle_alarm).setContentTitle("Ali-eba • $p vaxtıdır").setContentText("Namaz vaxtı daxil oldu").setPriority(NotificationCompat.PRIORITY_MAX).setAutoCancel(true).build();c.getSystemService(NotificationManager::class.java).notify(p.hashCode(),n);MediaPlayer.create(c,AzanPrefs.res(c))?.apply{setOnCompletionListener{it.release()};start()}}}

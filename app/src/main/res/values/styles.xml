@@ -1,0 +1,1 @@
+<resources><style name="Theme.Alieba" parent="Theme.MaterialComponents.DayNight.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:statusBarColor">@android:color/transparent</item><item name="android:navigationBarColor">#FFFFFF</item></style></resources>
