@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "625594639180",
+    "project_id": "ali-eba",
+    "storage_bucket": "ali-eba.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:625594639180:android:39092ea84a6db0ded325e9",
+        "android_client_info": {
+          "package_name": "com.alieba.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "625594639180-jg5n4dohc6e71mpop43bn39jjtbrvfkc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.alieba.app",
+            "certificate_hash": "d74efd19d4380a57f6ba482bcca05cade0381de1"
+          }
+        },
+        {
+          "client_id": "625594639180-kvvlhjsoumkosr06fflf8b8qadjbqged.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXFvIkouXnTVjaBB3xq7LOHe-6QkWhh18"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "625594639180-kvvlhjsoumkosr06fflf8b8qadjbqged.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
