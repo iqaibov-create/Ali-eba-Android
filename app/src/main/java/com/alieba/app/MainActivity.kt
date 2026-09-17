@@ -22,7 +22,508 @@ import kotlinx.coroutines.withContext
 
 class MainActivity : Activity() {
     private val brown=0xff8a4e32.toInt(); private val ink=0xff302823.toInt(); private val cream=0xfffff9f5.toInt()
-    override fun onCreate(b:Bundle?){super.onCreate(b); if(Build.VERSION.SDK_INT>=33)requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"),7); val v=home();setContentView(v);ViewCompat.setOnApplyWindowInsetsListener(v){x,i->val q=i.getInsets(WindowInsetsCompat.Type.systemBars());x.setPadding(0,q.top,0,q.bottom);i}}
+    override fun onCreate(b: Bundle?) {
+        super.onCreate(b)
+
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(
+            window,
+            false
+        )
+        window.statusBarColor = Color.TRANSPARENT
+
+        val setup = getSharedPreferences(
+            "alieba_setup",
+            MODE_PRIVATE
+        )
+
+        if (!setup.getBoolean("completed", false)) {
+            setContentView(firstSetup())
+            return
+        }
+
+        AzanScheduler.scheduleAll(this)
+        showHome()
+    }
+
+    private fun showHome() {
+        val v = home()
+        setContentView(v)
+
+        ViewCompat.setOnApplyWindowInsetsListener(v) { view, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars()
+            )
+            view.setPadding(0, 0, 0, bars.bottom)
+            insets
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(
+            requestCode,
+            permissions,
+            grantResults
+        )
+
+        when (requestCode) {
+            41 -> {
+                val granted = grantResults.isNotEmpty() &&
+                    grantResults.any {
+                        it == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    }
+
+                getSharedPreferences("alieba_setup", MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("location_permission", granted)
+                    .apply()
+
+                if (granted) {
+                    detectAutomaticLocation()
+                } else {
+                    Toast.makeText(
+                        this,
+                        "Məkan icazəsi verilmədi. Şəhəri əl ilə seçin.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    setContentView(locationSetup())
+                }
+            }
+
+            42 -> {
+                val granted = grantResults.isNotEmpty() &&
+                    grantResults[0] ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+
+                getSharedPreferences("alieba_setup", MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("notifications", granted)
+                    .apply()
+            }
+        }
+    }
+
+    private fun detectAutomaticLocation() {
+        if (
+            checkSelfPermission(
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED &&
+            checkSelfPermission(
+                android.Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            setContentView(locationSetup())
+            return
+        }
+
+        val client =
+            com.google.android.gms.location.LocationServices
+                .getFusedLocationProviderClient(this)
+
+        val token =
+            com.google.android.gms.tasks.CancellationTokenSource()
+
+        client.getCurrentLocation(
+            com.google.android.gms.location.Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+            token.token
+        ).addOnSuccessListener { location ->
+            if (location != null) {
+                getSharedPreferences(
+                    "alieba_setup",
+                    MODE_PRIVATE
+                ).edit()
+                    .putString("location_mode", "auto")
+                    .putString("latitude", location.latitude.toString())
+                    .putString("longitude", location.longitude.toString())
+                    .apply()
+
+                Toast.makeText(
+                    this,
+                    "Məkan müəyyən edildi",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                setContentView(notificationSetup())
+            } else {
+                Toast.makeText(
+                    this,
+                    "Məkan tapılmadı. Şəhəri əl ilə seçin.",
+                    Toast.LENGTH_LONG
+                ).show()
+
+                setContentView(locationSetup())
+            }
+        }.addOnFailureListener {
+            Toast.makeText(
+                this,
+                "Məkan müəyyən edilə bilmədi.",
+                Toast.LENGTH_LONG
+            ).show()
+
+            setContentView(locationSetup())
+        }
+    }
+
+    private fun firstSetup(): View {
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dp(24), dp(60), dp(24), dp(28))
+            setBackgroundColor(cream)
+        }
+
+        root.addView(TextView(this).apply {
+            text = "Ali-eba"
+            textSize = 30f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(brown)
+            gravity = Gravity.CENTER
+        })
+
+        root.addView(TextView(this).apply {
+            text = "1 / 3"
+            textSize = 13f
+            setTextColor(0xff8d817a.toInt())
+            gravity = Gravity.CENTER
+            setPadding(0, dp(10), 0, dp(30))
+        })
+
+        root.addView(TextView(this).apply {
+            text = "Dilinizi seçin"
+            textSize = 23f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(ink)
+            gravity = Gravity.CENTER
+        })
+
+        root.addView(TextView(this).apply {
+            text = "Tətbiqin istifadə dilini seçin"
+            textSize = 14f
+            setTextColor(0xff756a64.toInt())
+            gravity = Gravity.CENTER
+            setPadding(0, dp(8), 0, dp(25))
+        })
+
+        val languages = listOf(
+            "🇦🇿  Azərbaycan" to "az",
+            "🇹🇷  Türkçe" to "tr",
+            "🇷🇺  Русский" to "ru",
+            "🇬🇪  ქართული" to "ka"
+        )
+
+        languages.forEach { (label, code) ->
+            val button = TextView(this).apply {
+                text = label
+                textSize = 17f
+                gravity = Gravity.CENTER_VERTICAL
+                setTextColor(ink)
+                setPadding(dp(20), 0, dp(20), 0)
+
+                background = GradientDrawable().apply {
+                    setColor(Color.WHITE)
+                    cornerRadius = dp(16).toFloat()
+                    setStroke(dp(1), 0xffeadfd8.toInt())
+                }
+
+                setOnClickListener {
+                    getSharedPreferences(
+                        "alieba_setup",
+                        MODE_PRIVATE
+                    ).edit()
+                        .putString("language", code)
+                        .apply()
+
+                    setContentView(locationSetup())
+                }
+            }
+
+            root.addView(
+                button,
+                LinearLayout.LayoutParams(
+                    -1,
+                    dp(62)
+                ).apply {
+                    bottomMargin = dp(12)
+                }
+            )
+        }
+
+        return root
+    }
+
+    private fun locationSetup(): View {
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dp(24), dp(60), dp(24), dp(28))
+            setBackgroundColor(cream)
+        }
+
+        root.addView(TextView(this).apply {
+            text = "Ali-eba"
+            textSize = 30f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(brown)
+            gravity = Gravity.CENTER
+        })
+
+        root.addView(TextView(this).apply {
+            text = "2 / 3"
+            textSize = 13f
+            setTextColor(0xff8d817a.toInt())
+            gravity = Gravity.CENTER
+            setPadding(0, dp(10), 0, dp(30))
+        })
+
+        root.addView(TextView(this).apply {
+            text = "Məkanınızı seçin"
+            textSize = 23f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(ink)
+            gravity = Gravity.CENTER
+        })
+
+        root.addView(TextView(this).apply {
+            text = "Namaz vaxtlarını düzgün hesablamaq üçün məkan lazımdır"
+            textSize = 14f
+            setTextColor(0xff756a64.toInt())
+            gravity = Gravity.CENTER
+            setPadding(0, dp(8), 0, dp(28))
+        })
+
+        val auto = TextView(this).apply {
+            text = "◎   Avtomatik müəyyən et"
+            textSize = 17f
+            gravity = Gravity.CENTER_VERTICAL
+            setTextColor(Color.WHITE)
+            setPadding(dp(20), 0, dp(20), 0)
+
+            background = GradientDrawable().apply {
+                setColor(brown)
+                cornerRadius = dp(16).toFloat()
+            }
+
+            setOnClickListener {
+                getSharedPreferences("alieba_setup", MODE_PRIVATE)
+                    .edit()
+                    .putString("location_mode", "auto")
+                    .apply()
+
+                if (Build.VERSION.SDK_INT >= 23 &&
+                    checkSelfPermission(
+                        android.Manifest.permission.ACCESS_FINE_LOCATION
+                    ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                ) {
+                    requestPermissions(
+                        arrayOf(
+                            android.Manifest.permission.ACCESS_FINE_LOCATION,
+                            android.Manifest.permission.ACCESS_COARSE_LOCATION
+                        ),
+                        41
+                    )
+                } else {
+                    detectAutomaticLocation()
+                }
+            }
+        }
+
+        root.addView(
+            auto,
+            LinearLayout.LayoutParams(-1, dp(62)).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(16)
+            }
+        )
+
+        val city = EditText(this).apply {
+            hint = "Şəhər — məsələn: Marneuli"
+            textSize = 16f
+            setSingleLine(true)
+            setPadding(dp(18), 0, dp(18), 0)
+
+            background = GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = dp(16).toFloat()
+                setStroke(dp(1), 0xffeadfd8.toInt())
+            }
+        }
+
+        root.addView(
+            city,
+            LinearLayout.LayoutParams(-1, dp(60))
+        )
+
+        val manual = TextView(this).apply {
+            text = "Şəhəri yadda saxla və davam et"
+            textSize = 16f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setTextColor(brown)
+
+            setOnClickListener {
+                val value = city.text.toString().trim()
+
+                if (value.isEmpty()) {
+                    city.error = "Şəhəri yazın"
+                    return@setOnClickListener
+                }
+
+                getSharedPreferences("alieba_setup", MODE_PRIVATE)
+                    .edit()
+                    .putString("location_mode", "manual")
+                    .putString("city", value)
+                    .apply()
+
+                setContentView(notificationSetup())
+            }
+        }
+
+        root.addView(
+            manual,
+            LinearLayout.LayoutParams(-1, dp(58)).apply {
+                topMargin = dp(10)
+            }
+        )
+
+        return root
+    }
+
+    private fun notificationSetup(): View {
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dp(24), dp(60), dp(24), dp(28))
+            setBackgroundColor(cream)
+        }
+
+        root.addView(TextView(this).apply {
+            text = "Ali-eba"
+            textSize = 30f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(brown)
+            gravity = Gravity.CENTER
+        })
+
+        root.addView(TextView(this).apply {
+            text = "3 / 3"
+            textSize = 13f
+            setTextColor(0xff8d817a.toInt())
+            gravity = Gravity.CENTER
+            setPadding(0, dp(10), 0, dp(30))
+        })
+
+        root.addView(TextView(this).apply {
+            text = "Azan və bildirişlər"
+            textSize = 23f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(ink)
+            gravity = Gravity.CENTER
+        })
+
+        root.addView(TextView(this).apply {
+            text = "Namaz vaxtı daxil olduqda Ali-eba sizə bildiriş göndərə və azan səsləndirə bilər."
+            textSize = 14f
+            setTextColor(0xff756a64.toInt())
+            gravity = Gravity.CENTER
+            setPadding(dp(8), dp(10), dp(8), dp(28))
+        })
+
+        val notifications = Switch(this).apply {
+            text = "Namaz bildirişləri"
+            textSize = 17f
+            isChecked = true
+            setTextColor(ink)
+            setPadding(dp(18), 0, dp(12), 0)
+
+            background = GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = dp(16).toFloat()
+                setStroke(dp(1), 0xffeadfd8.toInt())
+            }
+        }
+
+        root.addView(
+            notifications,
+            LinearLayout.LayoutParams(-1, dp(64))
+        )
+
+        root.addView(TextView(this).apply {
+            text = "Sonradan Profil → Azan və namaz bildirişləri bölməsindən Fəcr, Zöhr, Əsr, Məğrib və İşa üçün ayrıca seçim edə bilərsiniz."
+            textSize = 13f
+            setTextColor(0xff8d817a.toInt())
+            setPadding(dp(8), dp(15), dp(8), dp(28))
+        })
+
+        val start = TextView(this).apply {
+            text = "Ali-eba-ya başla"
+            textSize = 17f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+
+            background = GradientDrawable().apply {
+                setColor(brown)
+                cornerRadius = dp(17).toFloat()
+            }
+
+            setOnClickListener {
+                val enabled = notifications.isChecked
+
+                listOf(
+                    "Fəcr",
+                    "Zöhr",
+                    "Əsr",
+                    "Məğrib",
+                    "İşa"
+                ).forEach { prayer ->
+                    AzanPrefs.setPrayerEnabled(
+                        this@MainActivity,
+                        prayer,
+                        enabled
+                    )
+                }
+
+                getSharedPreferences(
+                    "alieba_setup",
+                    MODE_PRIVATE
+                ).edit()
+                    .putBoolean("notifications", enabled)
+                    .putBoolean("completed", true)
+                    .apply()
+
+                if (
+                    enabled &&
+                    Build.VERSION.SDK_INT >= 33 &&
+                    checkSelfPermission(
+                        android.Manifest.permission.POST_NOTIFICATIONS
+                    ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                ) {
+                    requestPermissions(
+                        arrayOf(
+                            android.Manifest.permission.POST_NOTIFICATIONS
+                        ),
+                        42
+                    )
+                }
+
+                AzanScheduler.scheduleAll(this@MainActivity)
+                showHome()
+            }
+        }
+
+        root.addView(
+            start,
+            LinearLayout.LayoutParams(-1, dp(62)).apply {
+                topMargin = dp(12)
+            }
+        )
+
+        return root
+    }
+
     private fun home(): View {
         val root = FrameLayout(this).apply {
             setBackgroundColor(cream)
@@ -90,9 +591,21 @@ class MainActivity : Activity() {
             FrameLayout.LayoutParams(-1, dp(155))
         )
 
+        val heroWave = View(this).apply {
+            background = BottomWaveDrawable(cream, dp(12).toFloat())
+            rotation = 180f
+        }
+
+        hero.addView(
+            heroWave,
+            FrameLayout.LayoutParams(-1, dp(28), Gravity.BOTTOM)
+        )
+
         hero.addView(
             prayerStrip(),
-            FrameLayout.LayoutParams(-1, dp(68), Gravity.BOTTOM)
+            FrameLayout.LayoutParams(-1, dp(68), Gravity.BOTTOM).apply {
+                bottomMargin = dp(14)
+            }
         )
 
         body.addView(hero)
@@ -126,7 +639,21 @@ class MainActivity : Activity() {
                 addView(
                     ImageView(this@MainActivity).apply {
                         setImageResource(icon)
-                        setColorFilter(brown)
+                        val iconColor = when (name) {
+                            "Quran" -> 0xff2E7D32.toInt()
+                            "Məfatih" -> 0xff7B4FA3.toInt()
+                            "Əhkam" -> 0xffB06B32.toInt()
+                            "Təqvim" -> 0xff3979B8.toInt()
+                            "Mərsiyələr" -> 0xffB84B4B.toInt()
+                            "Hədis" -> 0xffD17A28.toInt()
+                            "Məşvərət" -> 0xff3F7C8C.toInt()
+                            "Kitabxana" -> 0xff795548.toInt()
+                            "Qiblə" -> 0xff168C83.toInt()
+                            "Zikr" -> 0xffC49324.toInt()
+                            "Ayarlar" -> 0xff687078.toInt()
+                            else -> brown
+                        }
+                        setColorFilter(iconColor)
                         setPadding(dp(5), dp(5), dp(5), dp(5))
                     },
                     LinearLayout.LayoutParams(dp(42), dp(42))
@@ -143,8 +670,20 @@ class MainActivity : Activity() {
                     LinearLayout.LayoutParams(-1, dp(28))
                 )
 
-                if (name == "Ayarlar") {
-                    setOnClickListener { prayerSettings() }
+                setOnClickListener {
+                    when (name) {
+                        "Quran" -> openSection("Quran", "Quran surələri, ayələr, tərcümə və audio")
+                        "Məfatih" -> openSection("Məfatih", "Dualar, ziyarətnamələr və gündəlik əməllər")
+                        "Əhkam" -> openSection("Əhkam", "Dini hökmlər və mövzular")
+                        "Təqvim" -> openSection("Təqvim", "Hicri təqvim, dini günlər və namaz vaxtları")
+                        "Mərsiyələr" -> openSection("Mərsiyələr", "Mərsiyə və dini audio bölməsi")
+                        "Hədis" -> openSection("Hədis", "Əhli-beyt hədisləri və mövzular")
+                        "Məşvərət" -> openSection("Məşvərət", "Sual verin və məsləhət alın")
+                        "Kitabxana" -> openSection("Kitabxana", "Dini kitablar və PDF kitabxanası")
+                        "Qiblə" -> openSection("Qiblə", "Qiblə istiqamətini müəyyən edin")
+                        "Zikr" -> openZikr()
+                        "Ayarlar" -> prayerSettings()
+                    }
                 }
             }
 
@@ -174,7 +713,7 @@ class MainActivity : Activity() {
         return root
     }
 
-    private fun prayerStrip():View{val p=getSharedPreferences("prayer_times",MODE_PRIVATE);val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER;setPadding(dp(5),dp(5),dp(5),dp(8))};listOf("Fəcr" to "05:19","Günəş" to "06:42","Zöhr" to "12:55","Əsr" to "16:19","Məğrib" to "19:26","İşa" to "00:14").forEach{(n,d)->row.addView(TextView(this).apply{text="$n\n${p.getString(n,d)}";textSize=11.5f;gravity=Gravity.CENTER;setTextColor(Color.WHITE);background=GradientDrawable().apply{setColor(0x66000000);cornerRadius=dp(15).toFloat()}},LinearLayout.LayoutParams(0,-1,1f).apply{setMargins(dp(2),0,dp(2),0)})};return row}
+    private fun prayerStrip():View{val p=getSharedPreferences("prayer_settings",MODE_PRIVATE);val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER;setPadding(dp(5),dp(5),dp(5),dp(8))};listOf("Fəcr" to "05:19","Günəş" to "06:42","Zöhr" to "12:55","Əsr" to "16:19","Məğrib" to "19:26","İşa" to "00:14").forEach{(n,d)->row.addView(TextView(this).apply{text="$n\n${p.getString(n,d)}";textSize=11.5f;gravity=Gravity.CENTER;setTextColor(Color.WHITE);background=GradientDrawable().apply{setColor(0x66000000);cornerRadius=dp(15).toFloat()}},LinearLayout.LayoutParams(0,-1,1f).apply{setMargins(dp(2),0,dp(2),0)})};return row}
     private fun bottomWave(): View {
         val wrap = FrameLayout(this).apply {
             background = BottomWaveDrawable(Color.WHITE, dp(14).toFloat())
@@ -207,13 +746,20 @@ class MainActivity : Activity() {
         }
 
         val homeNav = nav("Ana səhifə", R.drawable.ic_home, true)
-        val profileNav = nav("Profil", R.drawable.ic_profile)
+        val supportNav = nav("Dəstək", R.drawable.ic_heart)
 
-        profileNav.setOnClickListener { showProfile() }
+        homeNav.setOnClickListener { setContentView(home()) }
+
+        supportNav.setOnClickListener {
+            openSection(
+                "Proqrama dəstək",
+                "Ali-eba layihəsinə dəstək və əlaqə bölməsi"
+            )
+        }
 
         bar.addView(homeNav, LinearLayout.LayoutParams(0, -1, 1f))
         bar.addView(Space(this), LinearLayout.LayoutParams(0, -1, 0.8f))
-        bar.addView(profileNav, LinearLayout.LayoutParams(0, -1, 1f))
+        bar.addView(supportNav, LinearLayout.LayoutParams(0, -1, 1f))
 
         wrap.addView(bar, FrameLayout.LayoutParams(-1, -1))
 
@@ -312,37 +858,130 @@ class MainActivity : Activity() {
     }
 
     private fun showProfile() {
+        val user = FirebaseAuth.getInstance().currentUser
+
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(24), dp(18), dp(24), dp(10))
+            setPadding(dp(22), dp(12), dp(22), dp(10))
+        }
+
+        val avatar = TextView(this).apply {
+            text = if (user != null) "✓" else "👤"
+            textSize = 28f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(brown)
+            }
         }
 
         box.addView(
-            ImageView(this).apply {
-                setImageResource(R.drawable.ic_profile)
-                setColorFilter(brown)
-            },
-            LinearLayout.LayoutParams(-1, dp(70))
+            avatar,
+            LinearLayout.LayoutParams(dp(68), dp(68)).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                bottomMargin = dp(10)
+            }
         )
 
         box.addView(TextView(this).apply {
-            text = "İstifadəçi\nAli-eba Coin: 0"
+            text = user?.displayName ?: "Ali-eba istifadəçisi"
+            textSize = 20f
             gravity = Gravity.CENTER
-            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
             setTextColor(ink)
-            setPadding(0, dp(8), 0, dp(14))
         })
 
-        fun button(title: String, action: () -> Unit): Button {
-            return Button(this).apply {
-                text = title
+        box.addView(TextView(this).apply {
+            text = if (user != null) {
+                "${user.email ?: ""}\nAli-eba Coin: 0  •  Premium: Aktiv deyil"
+            } else {
+                "Hesaba daxil olun\nAli-eba Coin: 0"
+            }
+            textSize = 13f
+            gravity = Gravity.CENTER
+            setTextColor(0xff756a64.toInt())
+            setPadding(0, dp(5), 0, dp(14))
+        })
+
+        fun item(title: String, subtitle: String, action: () -> Unit): LinearLayout {
+            return LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(15), dp(11), dp(15), dp(11))
+                background = GradientDrawable().apply {
+                    setColor(0xfffff7f2.toInt())
+                    cornerRadius = dp(14).toFloat()
+                }
+
+                addView(TextView(this@MainActivity).apply {
+                    text = title
+                    textSize = 15f
+                    typeface = Typeface.DEFAULT_BOLD
+                    setTextColor(ink)
+                })
+
+                addView(TextView(this@MainActivity).apply {
+                    text = subtitle
+                    textSize = 11.5f
+                    setTextColor(0xff817872.toInt())
+                })
+
                 setOnClickListener { action() }
             }
         }
 
-        box.addView(button("Google ilə daxil ol") {
-            signInWithGoogle()
-        })
+        fun addItem(title: String, subtitle: String, action: () -> Unit) {
+            box.addView(
+                item(title, subtitle, action),
+                LinearLayout.LayoutParams(-1, -2).apply {
+                    bottomMargin = dp(7)
+                }
+            )
+        }
+
+        if (user == null) {
+            addItem(
+                "Google ilə daxil ol",
+                "Profilinizi və məlumatlarınızı hesabınıza bağlayın"
+            ) {
+                signInWithGoogle()
+            }
+        } else {
+            addItem(
+                "Hesabım",
+                "Google hesabı qoşulub"
+            ) {
+                Toast.makeText(this, user.email ?: "Google hesabı", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        addItem(
+            "Azan və namaz bildirişləri",
+            "Fəcr, Zöhr, Əsr, Məğrib və İşa üçün ayrıca seçim"
+        ) {
+            prayerSettings()
+        }
+
+        addItem(
+            "Ali-eba Coin və Premium",
+            "Balans, Premium və gələcək xidmətlər"
+        ) {
+            Toast.makeText(this, "Coin və Premium", Toast.LENGTH_SHORT).show()
+        }
+
+        addItem(
+            "Tətbiq ayarları",
+            "Dil, görünüş və digər seçimlər"
+        ) {
+            Toast.makeText(this, "Tətbiq ayarları", Toast.LENGTH_SHORT).show()
+        }
+
+        addItem(
+            "Proqrama dəstək",
+            "Ali-eba layihəsinə dəstək və əlaqə"
+        ) {
+            Toast.makeText(this, "Proqrama dəstək", Toast.LENGTH_SHORT).show()
+        }
 
         val role = getSharedPreferences(
             "account",
@@ -350,13 +989,12 @@ class MainActivity : Activity() {
         ).getString("role", "user")
 
         if (role == "admin") {
-            box.addView(button("Admin Paneli") {
-                Toast.makeText(
-                    this,
-                    "Admin API paneli",
-                    Toast.LENGTH_SHORT
-                ).show()
-            })
+            addItem(
+                "Admin Paneli",
+                "Kontent, istifadəçilər, Coin, Premium və bildirişlər"
+            ) {
+                Toast.makeText(this, "Admin API paneli", Toast.LENGTH_SHORT).show()
+            }
         }
 
         AlertDialog.Builder(this)
@@ -367,44 +1005,292 @@ class MainActivity : Activity() {
     }
 
     private fun prayerSettings() {
-        val names = arrayOf("Fəcr", "Günəş", "Zöhr", "Əsr", "Məğrib", "İşa")
-        val defaults = arrayOf("05:19", "06:42", "12:55", "16:19", "19:26", "00:14")
-        val prefs = getSharedPreferences("prayer_times", MODE_PRIVATE)
-        var index = 0
+        val prefs = getSharedPreferences("prayer_settings", MODE_PRIVATE)
 
-        fun next() {
-            if (index >= names.size) {
-                Toast.makeText(
-                    this,
-                    "Azan vaxtları yadda saxlandı",
-                    Toast.LENGTH_SHORT
-                ).show()
-                recreate()
-                return
-            }
+        val prayers = arrayOf(
+            "Fəcr",
+            "Zöhr",
+            "Əsr",
+            "Məğrib",
+            "İşa"
+        )
 
-            val name = names[index]
-            val edit = EditText(this).apply {
-                setText(prefs.getString(name, defaults[index]))
-                hint = "HH:mm"
-            }
+        val defaults = arrayOf(
+            "05:19",
+            "12:55",
+            "16:19",
+            "19:26",
+            "00:14"
+        )
 
-            AlertDialog.Builder(this)
-                .setTitle("$name vaxtı")
-                .setView(edit)
-                .setPositiveButton("Yadda saxla") { _, _ ->
-                    prefs.edit()
-                        .putString(name, edit.text.toString())
-                        .apply()
+        val scroll = ScrollView(this)
 
-                    index++
-                    next()
-                }
-                .setNegativeButton("Bitir", null)
-                .show()
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(8), dp(18), dp(8))
         }
 
-        next()
+        box.addView(TextView(this).apply {
+            text = "Hər namaz üçün azan bildirişini ayrıca açıb-bağlaya bilərsiniz."
+            textSize = 13f
+            setTextColor(0xff756a64.toInt())
+            setPadding(0, 0, 0, dp(12))
+        })
+
+        prayers.forEachIndexed { index, name ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(12), dp(8), dp(8), dp(8))
+                background = GradientDrawable().apply {
+                    setColor(0xfffff7f2.toInt())
+                    cornerRadius = dp(13).toFloat()
+                }
+            }
+
+            val info = TextView(this).apply {
+                text = "$name\n${prefs.getString("${name}_time", defaults[index])}"
+                textSize = 14f
+                setTextColor(ink)
+            }
+
+            val toggle = Switch(this).apply {
+                isChecked = AzanPrefs.isPrayerEnabled(
+                    this@MainActivity,
+                    name
+                )
+
+                setOnCheckedChangeListener { _, checked ->
+                    AzanPrefs.setPrayerEnabled(
+                        this@MainActivity,
+                        name,
+                        checked
+                    )
+                }
+            }
+
+            row.addView(
+                info,
+                LinearLayout.LayoutParams(0, -2, 1f)
+            )
+            row.addView(toggle)
+
+            row.setOnClickListener {
+                val edit = EditText(this).apply {
+                    inputType = android.text.InputType.TYPE_CLASS_DATETIME
+                    setText(
+                        prefs.getString(
+                            "${name}_time",
+                            defaults[index]
+                        )
+                    )
+                    hint = "HH:mm"
+                }
+
+                AlertDialog.Builder(this)
+                    .setTitle("$name vaxtı")
+                    .setView(edit)
+                    .setPositiveButton("Yadda saxla") { _, _ ->
+                        prefs.edit()
+                            .putString("${name}_time", edit.text.toString())
+                            .apply()
+
+                        AzanScheduler.scheduleAll(this@MainActivity)
+                        info.text = "$name\n${edit.text}"
+                    }
+                    .setNegativeButton("Ləğv et", null)
+                    .show()
+            }
+
+            box.addView(
+                row,
+                LinearLayout.LayoutParams(-1, -2).apply {
+                    bottomMargin = dp(7)
+                }
+            )
+        }
+
+        box.addView(TextView(this).apply {
+            text = "Günəş vaxtı məlumat üçündür və azan bildirişi kimi idarə edilmir."
+            textSize = 11.5f
+            setTextColor(0xff817872.toInt())
+            setPadding(0, dp(5), 0, 0)
+        })
+
+        scroll.addView(box)
+
+        AlertDialog.Builder(this)
+            .setTitle("Azan ayarları")
+            .setView(scroll)
+            .setPositiveButton("Hazır", null)
+            .show()
+    }
+
+    private fun openSection(title: String, description: String) {
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(16), dp(20), dp(20))
+            setBackgroundColor(cream)
+        }
+
+        val top = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val back = TextView(this).apply {
+            text = "‹"
+            textSize = 38f
+            gravity = Gravity.CENTER
+            setTextColor(brown)
+            setOnClickListener {
+                setContentView(home())
+            }
+        }
+
+        top.addView(back, LinearLayout.LayoutParams(dp(45), dp(50)))
+
+        top.addView(
+            TextView(this).apply {
+                text = title
+                textSize = 22f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(ink)
+                gravity = Gravity.CENTER_VERTICAL
+            },
+            LinearLayout.LayoutParams(0, dp(50), 1f)
+        )
+
+        root.addView(top)
+
+        root.addView(TextView(this).apply {
+            text = description
+            textSize = 14f
+            setTextColor(0xff756a64.toInt())
+            setPadding(dp(4), dp(12), dp(4), dp(20))
+        })
+
+        root.addView(TextView(this).apply {
+            text = "Bu bölmə artıq ana səhifədən açılır.\n\nKontent server API-si ilə bu ekrana əlavə olunacaq."
+            textSize = 16f
+            setTextColor(ink)
+            gravity = Gravity.CENTER
+            setPadding(dp(18), dp(45), dp(18), dp(45))
+            background = GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = dp(18).toFloat()
+            }
+        })
+
+        setContentView(root)
+    }
+
+    private fun openZikr() {
+        val prefs = getSharedPreferences("zikr", MODE_PRIVATE)
+        var count = prefs.getInt("count", 0)
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dp(20), dp(16), dp(20), dp(24))
+            setBackgroundColor(cream)
+        }
+
+        val top = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        top.addView(
+            TextView(this).apply {
+                text = "‹"
+                textSize = 38f
+                gravity = Gravity.CENTER
+                setTextColor(brown)
+                setOnClickListener { setContentView(home()) }
+            },
+            LinearLayout.LayoutParams(dp(45), dp(50))
+        )
+
+        top.addView(
+            TextView(this).apply {
+                text = "Zikr"
+                textSize = 22f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(ink)
+            },
+            LinearLayout.LayoutParams(0, -2, 1f)
+        )
+
+        root.addView(top, LinearLayout.LayoutParams(-1, -2))
+
+        val zikrName = TextView(this).apply {
+            text = "Subhanallah"
+            textSize = 19f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setTextColor(ink)
+            setPadding(0, dp(38), 0, dp(12))
+        }
+        root.addView(zikrName)
+
+        val counter = TextView(this).apply {
+            text = count.toString()
+            textSize = 54f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setTextColor(brown)
+        }
+        root.addView(counter)
+
+        val tap = TextView(this).apply {
+            text = "ZİKR ET"
+            textSize = 18f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(brown)
+            }
+
+            setOnClickListener {
+                count++
+                counter.text = count.toString()
+                prefs.edit().putInt("count", count).apply()
+
+                if (Build.VERSION.SDK_INT >= 26) {
+                    performHapticFeedback(
+                        android.view.HapticFeedbackConstants.KEYBOARD_TAP
+                    )
+                }
+            }
+        }
+
+        root.addView(
+            tap,
+            LinearLayout.LayoutParams(dp(150), dp(150)).apply {
+                topMargin = dp(30)
+            }
+        )
+
+        val reset = Button(this).apply {
+            text = "Sıfırla"
+            setOnClickListener {
+                count = 0
+                counter.text = "0"
+                prefs.edit().putInt("count", 0).apply()
+            }
+        }
+
+        root.addView(
+            reset,
+            LinearLayout.LayoutParams(-1, dp(52)).apply {
+                topMargin = dp(30)
+            }
+        )
+
+        setContentView(root)
     }
 
     private fun dp(v:Int)=(v*resources.displayMetrics.density).toInt()
@@ -471,6 +1357,7 @@ class BottomWaveDrawable(
 }
 
 class BirdSkyView(c: android.content.Context) : View(c) {
+
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.BLACK
         style = Paint.Style.FILL
@@ -478,85 +1365,118 @@ class BirdSkyView(c: android.content.Context) : View(c) {
 
     private var time = 0f
 
-    private val birds = listOf(
-        floatArrayOf(-0.15f, 0.28f, 1.00f, 0.00f),
-        floatArrayOf(0.12f, 0.48f, 0.72f, 1.20f),
-        floatArrayOf(0.43f, 0.20f, 0.88f, 2.30f),
-        floatArrayOf(0.72f, 0.38f, 0.62f, 3.10f),
-        floatArrayOf(0.90f, 0.16f, 0.52f, 4.20f)
+    private data class Bird(
+        var x: Float,
+        val y: Float,
+        val size: Float,
+        val speed: Float,
+        val phase: Float
     )
+
+    private val birds = mutableListOf<Bird>()
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+
+        birds.clear()
+
+        birds.add(Bird(w * .08f, h * .35f, 34f, 2.5f, 0f))
+        birds.add(Bird(w * .42f, h * .57f, 27f, 2.0f, 1.7f))
+        birds.add(Bird(w * .70f, h * .25f, 31f, 2.8f, 3.2f))
+    }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        val w = width.toFloat()
-        val h = height.toFloat()
+        val density = resources.displayMetrics.density
 
-        birds.forEachIndexed { i, bird ->
-            val speed = 0.22f + i * 0.012f
-            val x = ((bird[0] + time * speed) % 1.35f) * w
-            val y = bird[1] * h + sin(time * 5f + bird[3]) * dp(3)
-            val size = dp(12).toFloat() * bird[2]
-            val flap = sin(time * 15f + bird[3])
+        for (bird in birds) {
+            bird.x += bird.speed * density
+
+            if (bird.x > width + bird.size * density * 2f) {
+                bird.x = -bird.size * density * 2f
+            }
+
+            val size = bird.size * density
+            val flap = sin(time * 12f + bird.phase)
+            val wingY = flap * size * .62f
 
             canvas.save()
-            canvas.translate(x, y)
+            canvas.translate(bird.x, bird.y)
 
-            val body = RectF(
-                -size * 0.34f,
-                -size * 0.12f,
-                size * 0.42f,
-                size * 0.18f
+            // Gövdə
+            canvas.drawOval(
+                -size * .45f,
+                -size * .12f,
+                size * .48f,
+                size * .14f,
+                paint
             )
-            canvas.drawOval(body, paint)
 
-            val head = RectF(
-                size * 0.25f,
-                -size * 0.20f,
-                size * 0.52f,
-                size * 0.07f
+            // Baş
+            canvas.drawCircle(
+                size * .47f,
+                -size * .04f,
+                size * .15f,
+                paint
             )
-            canvas.drawOval(head, paint)
 
+            // Dimdik
+            val beak = Path().apply {
+                moveTo(size * .60f, -size * .08f)
+                lineTo(size * .82f, -size * .02f)
+                lineTo(size * .60f, size * .02f)
+                close()
+            }
+            canvas.drawPath(beak, paint)
+
+            // Quyruq
             val tail = Path().apply {
-                moveTo(-size * 0.28f, 0f)
-                lineTo(-size * 0.72f, -size * 0.22f)
-                lineTo(-size * 0.52f, size * 0.08f)
-                lineTo(-size * 0.72f, size * 0.28f)
+                moveTo(-size * .40f, -size * .07f)
+                lineTo(-size * .82f, -size * .34f)
+                lineTo(-size * .65f, size * .02f)
+                lineTo(-size * .82f, size * .31f)
+                lineTo(-size * .38f, size * .09f)
                 close()
             }
             canvas.drawPath(tail, paint)
 
-            val wingLift = size * (0.48f + flap * 0.30f)
-
+            // Yuxarı qanad
             val upperWing = Path().apply {
-                moveTo(-size * 0.05f, 0f)
+                moveTo(-size * .08f, -size * .05f)
+
                 cubicTo(
-                    -size * 0.18f, -size * 0.18f,
-                    -size * 0.48f, -wingLift,
-                    -size * 0.88f, -wingLift * 0.72f
+                    -size * .20f, -size * .22f,
+                    -size * .12f, wingY - size * .28f,
+                    size * .04f, wingY - size * .48f
                 )
+
                 cubicTo(
-                    -size * 0.55f, -size * 0.12f,
-                    -size * 0.28f, size * 0.05f,
-                    -size * 0.05f, size * 0.10f
+                    size * .20f, wingY - size * .25f,
+                    size * .24f, -size * .12f,
+                    size * .24f, -size * .02f
                 )
+
                 close()
             }
             canvas.drawPath(upperWing, paint)
 
+            // Aşağı qanad
             val lowerWing = Path().apply {
-                moveTo(size * 0.05f, size * 0.03f)
+                moveTo(-size * .03f, size * .05f)
+
                 cubicTo(
-                    size * 0.18f, size * 0.16f,
-                    size * 0.48f, wingLift * 0.72f,
-                    size * 0.76f, wingLift * 0.52f
+                    -size * .14f, size * .20f,
+                    -size * .04f, -wingY + size * .28f,
+                    size * .12f, -wingY + size * .46f
                 )
+
                 cubicTo(
-                    size * 0.48f, size * 0.12f,
-                    size * 0.26f, -size * 0.02f,
-                    size * 0.05f, -size * 0.05f
+                    size * .27f, -wingY + size * .22f,
+                    size * .28f, size * .12f,
+                    size * .20f, size * .04f
                 )
+
                 close()
             }
             canvas.drawPath(lowerWing, paint)
@@ -564,10 +1484,7 @@ class BirdSkyView(c: android.content.Context) : View(c) {
             canvas.restore()
         }
 
-        time += 0.016f
+        time += .075f
         postInvalidateOnAnimation()
     }
-
-    private fun dp(v: Int): Float =
-        v * resources.displayMetrics.density
 }
