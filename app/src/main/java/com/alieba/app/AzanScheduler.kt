@@ -8,84 +8,53 @@ import android.os.Build
 import java.util.Calendar
 
 object AzanScheduler {
-
-    private val prayers = listOf(
-        "Fəcr" to "05:19",
-        "Zöhr" to "12:55",
-        "Əsr" to "16:19",
-        "Məğrib" to "19:26",
-        "İşa" to "00:14"
-    )
+    fun refreshTimes(context: Context): PrayerTimesCalculator.Times? {
+        val setup = context.getSharedPreferences("alieba_setup", Context.MODE_PRIVATE)
+        val lat = setup.getString("latitude", null)?.toDoubleOrNull() ?: return null
+        val lon = setup.getString("longitude", null)?.toDoubleOrNull() ?: return null
+        val times = PrayerTimesCalculator.calculate(lat, lon)
+        context.getSharedPreferences("prayer_settings", Context.MODE_PRIVATE).edit()
+            .putString("Fəcr_time", times.fajr)
+            .putString("Günəş_time", times.sunrise)
+            .putString("Zöhr_time", times.dhuhr)
+            .putString("Əsr_time", times.asr)
+            .putString("Məğrib_time", times.maghrib)
+            .putString("İşa_time", times.isha)
+            .apply()
+        return times
+    }
 
     fun scheduleAll(context: Context) {
-        val prefs = context.getSharedPreferences(
-            "prayer_settings",
-            Context.MODE_PRIVATE
+        val times = refreshTimes(context) ?: return
+        val prayers = listOf(
+            "Fəcr" to times.fajr,
+            "Zöhr" to times.dhuhr,
+            "Əsr" to times.asr,
+            "Məğrib" to times.maghrib,
+            "İşa" to times.isha
         )
-
-        prayers.forEachIndexed { index, (name, defaultTime) ->
-            val time = prefs.getString(
-                "${name}_time",
-                defaultTime
-            ) ?: defaultTime
-
-            schedulePrayer(context, name, time, 7000 + index)
+        prayers.forEachIndexed { index, pair ->
+            schedulePrayer(context, pair.first, pair.second, 7000 + index)
         }
     }
 
-    private fun schedulePrayer(
-        context: Context,
-        prayer: String,
-        time: String,
-        requestCode: Int
-    ) {
+    private fun schedulePrayer(context: Context, prayer: String, time: String, requestCode: Int) {
         val parts = time.split(":")
         if (parts.size != 2) return
-
         val hour = parts[0].toIntOrNull() ?: return
         val minute = parts[1].toIntOrNull() ?: return
-
         val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, hour)
-            set(Calendar.MINUTE, minute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-
-            if (timeInMillis <= System.currentTimeMillis()) {
-                add(Calendar.DAY_OF_YEAR, 1)
-            }
+            set(Calendar.HOUR_OF_DAY, hour); set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+            if (timeInMillis <= System.currentTimeMillis()) add(Calendar.DAY_OF_YEAR, 1)
         }
-
-        val intent = Intent(context, AzanReceiver::class.java).apply {
-            putExtra("prayer", prayer)
-        }
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            requestCode,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or
-                PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val alarmManager =
-            context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
-        if (
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-            alarmManager.canScheduleExactAlarms()
-        ) {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                calendar.timeInMillis,
-                pendingIntent
-            )
+        val intent = Intent(context, AzanReceiver::class.java).putExtra("prayer", prayer)
+        val pi = PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()) {
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pi)
         } else {
-            alarmManager.setAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                calendar.timeInMillis,
-                pendingIntent
-            )
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pi)
         }
     }
 }

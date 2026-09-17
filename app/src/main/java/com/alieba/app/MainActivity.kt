@@ -371,13 +371,7 @@ class MainActivity : Activity() {
                     return@setOnClickListener
                 }
 
-                getSharedPreferences("alieba_setup", MODE_PRIVATE)
-                    .edit()
-                    .putString("location_mode", "manual")
-                    .putString("city", value)
-                    .apply()
-
-                setContentView(notificationSetup())
+                saveManualCityLocation(value)
             }
         }
 
@@ -389,6 +383,33 @@ class MainActivity : Activity() {
         )
 
         return root
+    }
+
+    private fun saveManualCityLocation(city: String) {
+        Thread {
+            try {
+                @Suppress("DEPRECATION")
+                val results = android.location.Geocoder(this).getFromLocationName(city, 1)
+                val location = results?.firstOrNull()
+                runOnUiThread {
+                    if (location == null) {
+                        Toast.makeText(this, "Şəhər tapılmadı. Adı yoxlayın.", Toast.LENGTH_LONG).show()
+                        return@runOnUiThread
+                    }
+                    getSharedPreferences("alieba_setup", MODE_PRIVATE).edit()
+                        .putString("location_mode", "manual")
+                        .putString("city", city)
+                        .putString("latitude", location.latitude.toString())
+                        .putString("longitude", location.longitude.toString())
+                        .apply()
+                    setContentView(notificationSetup())
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    Toast.makeText(this, "Şəhər müəyyən edilə bilmədi. İnterneti yoxlayın.", Toast.LENGTH_LONG).show()
+                }
+            }
+        }.start()
     }
 
     private fun notificationSetup(): View {
@@ -713,7 +734,37 @@ class MainActivity : Activity() {
         return root
     }
 
-    private fun prayerStrip():View{val p=getSharedPreferences("prayer_settings",MODE_PRIVATE);val row=LinearLayout(this).apply{orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER;setPadding(dp(5),dp(5),dp(5),dp(8))};listOf("Fəcr" to "05:19","Günəş" to "06:42","Zöhr" to "12:55","Əsr" to "16:19","Məğrib" to "19:26","İşa" to "00:14").forEach{(n,d)->row.addView(TextView(this).apply{text="$n\n${p.getString(n,d)}";textSize=11.5f;gravity=Gravity.CENTER;setTextColor(Color.WHITE);background=GradientDrawable().apply{setColor(0x66000000);cornerRadius=dp(15).toFloat()}},LinearLayout.LayoutParams(0,-1,1f).apply{setMargins(dp(2),0,dp(2),0)})};return row}
+    private fun prayerStrip(): View {
+        AzanScheduler.refreshTimes(this)
+        val p = getSharedPreferences("prayer_settings", MODE_PRIVATE)
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(dp(5), dp(5), dp(5), dp(8))
+        }
+        val prayers = listOf(
+            "Fəcr" to p.getString("Fəcr_time", "--:--"),
+            "Günəş" to p.getString("Günəş_time", "--:--"),
+            "Zöhr" to p.getString("Zöhr_time", "--:--"),
+            "Əsr" to p.getString("Əsr_time", "--:--"),
+            "Məğrib" to p.getString("Məğrib_time", "--:--"),
+            "İşa" to p.getString("İşa_time", "--:--")
+        )
+        prayers.forEach { (name, time) ->
+            row.addView(TextView(this).apply {
+                text = "$name\n${time ?: "--:--"}"
+                textSize = 11.5f
+                gravity = Gravity.CENTER
+                setTextColor(Color.WHITE)
+                background = GradientDrawable().apply {
+                    setColor(0x66000000)
+                    cornerRadius = dp(15).toFloat()
+                }
+            }, LinearLayout.LayoutParams(0, -1, 1f).apply { setMargins(dp(2), 0, dp(2), 0) })
+        }
+        return row
+    }
+
     private fun bottomWave(): View {
         val wrap = FrameLayout(this).apply {
             background = BottomWaveDrawable(Color.WHITE, dp(14).toFloat())
@@ -748,7 +799,7 @@ class MainActivity : Activity() {
         val homeNav = nav("Ana səhifə", R.drawable.ic_home, true)
         val supportNav = nav("Dəstək", R.drawable.ic_heart)
 
-        homeNav.setOnClickListener { setContentView(home()) }
+        homeNav.setOnClickListener { showHome() }
 
         supportNav.setOnClickListener {
             openSection(
