@@ -613,8 +613,7 @@ class MainActivity : Activity() {
         )
 
         val heroWave = View(this).apply {
-            background = BottomWaveDrawable(cream, dp(12).toFloat())
-            rotation = 180f
+            background = HeroWaveDrawable(Color.WHITE, dp(18).toFloat())
         }
 
         hero.addView(
@@ -634,7 +633,7 @@ class MainActivity : Activity() {
         val grid = GridLayout(this).apply {
             columnCount = 3
             setPadding(dp(10), dp(17), dp(10), dp(14))
-            setBackgroundColor(cream)
+            setBackgroundColor(Color.WHITE)
         }
 
         val items = listOf(
@@ -767,7 +766,7 @@ class MainActivity : Activity() {
 
     private fun bottomWave(): View {
         val wrap = FrameLayout(this).apply {
-            background = BottomWaveDrawable(Color.WHITE, dp(14).toFloat())
+            background = BottomWaveDrawable(Color.WHITE, dp(18).toFloat())
             elevation = dp(10).toFloat()
         }
 
@@ -1346,6 +1345,26 @@ class MainActivity : Activity() {
 
     private fun dp(v:Int)=(v*resources.displayMetrics.density).toInt()
 }
+class HeroWaveDrawable(
+    private val fill: Int,
+    private val amp: Float
+) : Drawable() {
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = fill; style = Paint.Style.FILL }
+    override fun draw(canvas: Canvas) {
+        val w = bounds.width().toFloat(); val h = bounds.height().toFloat()
+        val p = Path().apply {
+            moveTo(0f, h * .42f)
+            cubicTo(w * .18f, h * .08f, w * .34f, h * .78f, w * .52f, h * .43f)
+            cubicTo(w * .70f, h * .10f, w * .84f, h * .68f, w, h * .34f)
+            lineTo(w, h); lineTo(0f, h); close()
+        }
+        canvas.drawPath(p, paint)
+    }
+    override fun setAlpha(alpha: Int) { paint.alpha = alpha }
+    override fun setColorFilter(filter: ColorFilter?) { paint.colorFilter = filter }
+    override fun getOpacity(): Int = PixelFormat.OPAQUE
+}
+
 class BottomWaveDrawable(
     private val fill: Int,
     private val amp: Float
@@ -1363,31 +1382,10 @@ class BottomWaveDrawable(
 
         val path = Path().apply {
             moveTo(0f, amp)
-
-            cubicTo(
-                w * 0.18f, amp,
-                w * 0.30f, amp * 0.45f,
-                w * 0.38f, amp * 0.45f
-            )
-
-            cubicTo(
-                w * 0.43f, amp * 0.45f,
-                w * 0.43f, amp * 2.05f,
-                w * 0.50f, amp * 2.05f
-            )
-
-            cubicTo(
-                w * 0.57f, amp * 2.05f,
-                w * 0.57f, amp * 0.45f,
-                w * 0.62f, amp * 0.45f
-            )
-
-            cubicTo(
-                w * 0.70f, amp * 0.45f,
-                w * 0.82f, amp,
-                w, amp
-            )
-
+            cubicTo(w * .18f, amp * .95f, w * .30f, amp * .78f, w * .37f, amp * .72f)
+            cubicTo(w * .42f, amp * .68f, w * .43f, 0f, w * .50f, 0f)
+            cubicTo(w * .57f, 0f, w * .58f, amp * .68f, w * .63f, amp * .72f)
+            cubicTo(w * .70f, amp * .78f, w * .82f, amp * .95f, w, amp)
             lineTo(w, h)
             lineTo(0f, h)
             close()
@@ -1431,9 +1429,9 @@ class BirdSkyView(c: android.content.Context) : View(c) {
 
         birds.clear()
 
-        birds.add(Bird(w * .08f, h * .35f, 34f, 2.5f, 0f))
-        birds.add(Bird(w * .42f, h * .57f, 27f, 2.0f, 1.7f))
-        birds.add(Bird(w * .70f, h * .25f, 31f, 2.8f, 3.2f))
+        birds.add(Bird(w * .10f, h * .34f, 18f, 2.2f, 0f))
+        birds.add(Bird(w * .38f, h * .54f, 18f, 2.0f, 1.7f))
+        birds.add(Bird(w * .68f, h * .28f, 18f, 2.4f, 3.2f))
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -1455,82 +1453,17 @@ class BirdSkyView(c: android.content.Context) : View(c) {
             canvas.save()
             canvas.translate(bird.x, bird.y)
 
-            // Gövdə
-            canvas.drawOval(
-                -size * .45f,
-                -size * .12f,
-                size * .48f,
-                size * .14f,
-                paint
-            )
-
-            // Baş
-            canvas.drawCircle(
-                size * .47f,
-                -size * .04f,
-                size * .15f,
-                paint
-            )
-
-            // Dimdik
-            val beak = Path().apply {
-                moveTo(size * .60f, -size * .08f)
-                lineTo(size * .82f, -size * .02f)
-                lineTo(size * .60f, size * .02f)
+            // V11: eyni ölçülü, yüngül quş silueti — iri "təyyarə" gövdəsi yoxdur
+            val wingLift = flap * size * .34f
+            val birdPath = Path().apply {
+                moveTo(-size * .95f, wingLift * .18f)
+                cubicTo(-size * .62f, -size * .10f, -size * .34f, -size * .42f + wingLift, 0f, -size * .08f)
+                cubicTo(size * .34f, -size * .42f - wingLift, size * .62f, -size * .10f, size * .95f, wingLift * .18f)
+                cubicTo(size * .58f, size * .02f, size * .28f, size * .18f, 0f, size * .10f)
+                cubicTo(-size * .28f, size * .18f, -size * .58f, size * .02f, -size * .95f, wingLift * .18f)
                 close()
             }
-            canvas.drawPath(beak, paint)
-
-            // Quyruq
-            val tail = Path().apply {
-                moveTo(-size * .40f, -size * .07f)
-                lineTo(-size * .82f, -size * .34f)
-                lineTo(-size * .65f, size * .02f)
-                lineTo(-size * .82f, size * .31f)
-                lineTo(-size * .38f, size * .09f)
-                close()
-            }
-            canvas.drawPath(tail, paint)
-
-            // Yuxarı qanad
-            val upperWing = Path().apply {
-                moveTo(-size * .08f, -size * .05f)
-
-                cubicTo(
-                    -size * .20f, -size * .22f,
-                    -size * .12f, wingY - size * .28f,
-                    size * .04f, wingY - size * .48f
-                )
-
-                cubicTo(
-                    size * .20f, wingY - size * .25f,
-                    size * .24f, -size * .12f,
-                    size * .24f, -size * .02f
-                )
-
-                close()
-            }
-            canvas.drawPath(upperWing, paint)
-
-            // Aşağı qanad
-            val lowerWing = Path().apply {
-                moveTo(-size * .03f, size * .05f)
-
-                cubicTo(
-                    -size * .14f, size * .20f,
-                    -size * .04f, -wingY + size * .28f,
-                    size * .12f, -wingY + size * .46f
-                )
-
-                cubicTo(
-                    size * .27f, -wingY + size * .22f,
-                    size * .28f, size * .12f,
-                    size * .20f, size * .04f
-                )
-
-                close()
-            }
-            canvas.drawPath(lowerWing, paint)
+            canvas.drawPath(birdPath, paint)
 
             canvas.restore()
         }
