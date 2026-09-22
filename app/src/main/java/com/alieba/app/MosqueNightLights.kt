@@ -1,22 +1,24 @@
 package com.alieba.app
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Paint
+import android.graphics.*
 import android.view.View
 
-/** Subtle warm window highlights on original mosque photo, not a generated replacement image. */
-class MosqueNightLights(c:Context):View(c) {
-    private val p=Paint(Paint.ANTI_ALIAS_FLAG)
-    override fun onDraw(canvas:Canvas){
-        val w=width.toFloat();val h=height.toFloat()
-        // A small moon and window lights that scale with the hero layout.
-        p.color=0xfff8e7ba.toInt();p.alpha=225
-        canvas.drawCircle(w*.82f,h*.19f,w*.025f,p)
-        p.color=0xff061a35.toInt();canvas.drawCircle(w*.83f,h*.18f,w*.025f,p)
-        p.color=0xffffc878.toInt();p.alpha=120
-        for(x in listOf(.315f,.41f,.505f,.615f)) {
-            canvas.drawRoundRect(w*x-w*.023f,h*.52f,w*x+w*.023f,h*.61f,w*.01f,w*.01f,p)
-        }
-    }
+/** The original mosque photo is displayed FIT_CENTER above this canvas. Warm translucent
+ * highlights are painted above its facade; no replacement photo is generated. */
+class MosqueNightLights(c:Context): View(c){
+ private val p=Paint(Paint.ANTI_ALIAS_FLAG)
+ override fun onDraw(canvas:Canvas){
+  val w=width.toFloat(); val h=height.toFloat()
+  val imageH=kotlin.math.min(h,w*886f/1536f)
+  val y=(h-imageH)/2f; val x=(w-imageH*1536f/886f)/2f
+  val iw=imageH*1536f/886f
+  p.color=0xffffd47e.toInt();p.alpha=158
+  listOf(0.14f,0.31f,0.47f,0.65f,0.82f).forEach { xx ->
+   val left=x+iw*xx
+   canvas.drawRoundRect(left,y+imageH*.68f,left+iw*.021f,y+imageH*.79f,iw*.005f,iw*.005f,p)
+  }
+  p.color=0xffffd996.toInt();p.alpha=85
+  canvas.drawCircle(x+iw*.74f,y+imageH*.41f,iw*.012f,p)
+ }
 }
