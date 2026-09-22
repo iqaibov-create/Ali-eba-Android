@@ -585,8 +585,8 @@ class MainActivity : Activity() {
         top.addView(avatar,LinearLayout.LayoutParams(dp(46),dp(46)))
         hero.addView(top,FrameLayout.LayoutParams(-1,dp(66),Gravity.TOP))
         val quote=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(16),0,dp(16),0)}
-        quote.addView(label(if(night) "Həyatını Allahın rəngi ilə boya" else "Hər gün Allaha daha yaxın",23f,Color.WHITE).apply {setShadowLayer(4f,0f,2f,0x88000000)},LinearLayout.LayoutParams(-1,-2))
-        quote.addView(label(if(night) "“Qəlblər Allahı zikr etməklə rahatlıq tapır.”" else "“Allah zikr edənləri sevir.”",12f,Color.WHITE).apply {setShadowLayer(3f,0f,2f,0x88000000)},LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(8)})
+        quote.addView(label(if(night) "Həyatını Allahın rəngi ilə boya" else "Hər gün Allaha daha yaxın",23f,Color.WHITE).apply {setShadowLayer(4f,0f,2f,0x88000000.toInt())},LinearLayout.LayoutParams(-1,-2))
+        quote.addView(label(if(night) "“Qəlblər Allahı zikr etməklə rahatlıq tapır.”" else "“Allah zikr edənləri sevir.”",12f,Color.WHITE).apply {setShadowLayer(3f,0f,2f,0x88000000.toInt())},LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(8)})
         hero.addView(quote,FrameLayout.LayoutParams(-1,dp(112),Gravity.TOP).apply {topMargin=dp(81)})
         val date=label(java.text.SimpleDateFormat("d MMMM, EEEE",java.util.Locale.forLanguageTag("az")).format(java.util.Date()),13f,Color.WHITE,true).apply {background=tileBg(0xa0103334.toInt(),15);setPadding(dp(11),dp(4),dp(11),dp(4))}
         hero.addView(date,FrameLayout.LayoutParams(-2,dp(38),Gravity.END or Gravity.BOTTOM).apply {rightMargin=dp(12);bottomMargin=dp(133)})
