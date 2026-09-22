@@ -12,8 +12,8 @@ android {
         applicationId = "com.alieba.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "10.0"
+        versionCode = 12
+        versionName = "12.0"
     }
 
     compileOptions {
@@ -28,6 +28,8 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation(platform("com.google.firebase:firebase-bom:34.3.0"))
     implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-messaging")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("androidx.credentials:credentials:1.5.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")

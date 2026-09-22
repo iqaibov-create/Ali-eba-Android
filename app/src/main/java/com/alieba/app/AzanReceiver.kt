@@ -1,44 +1,22 @@
 package com.alieba.app
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.media.AudioAttributes
-import android.media.MediaPlayer
 import android.os.Build
-import androidx.core.app.NotificationCompat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-class AzanReceiver : BroadcastReceiver() {
-    override fun onReceive(c: Context, i: Intent) {
-        val prayer = i.getStringExtra("prayer") ?: "Namaz"
-        // Always refresh tomorrow's alarms, even when this prayer is disabled.
-        AzanScheduler.scheduleAll(c)
-        if (!AzanPrefs.isPrayerEnabled(c, prayer)) return
-
-        val manager = c.getSystemService(NotificationManager::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && manager.getNotificationChannel("azan") == null) {
-            manager.createNotificationChannel(NotificationChannel("azan", "Azan və namaz vaxtları", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Namaz vaxtı bildirişləri"
-                setSound(null, AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build())
-            })
-        }
-        val open = PendingIntent.getActivity(c, 9001, Intent(c, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val notification = NotificationCompat.Builder(c, "azan")
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle("Ali-eba • $prayer vaxtıdır")
-            .setContentText("Azanı açmaq üçün toxunun")
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setContentIntent(open)
-            .setAutoCancel(true)
-            .build()
-        manager.notify(prayer.hashCode(), notification)
-        MediaPlayer.create(c, AzanPrefs.res(c))?.apply {
-            setOnCompletionListener { it.release() }
-            start()
-        }
+class AzanReceiver:BroadcastReceiver() {
+    override fun onReceive(c:Context,i:Intent) {
+        val name=i.getStringExtra("prayer") ?: return
+        val date=SimpleDateFormat("yyyy-MM-dd",Locale.US).format(Date())
+        if(i.getStringExtra("date")!=date) return
+        if(PrayerClock.times(c).isEmpty() || !AzanPrefs.isPrayerEnabled(c,name)) return
+        if(!c.getSharedPreferences("alieba_setup",0).getBoolean("notifications",false)) return
+        if(Build.VERSION.SDK_INT>=33 && c.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED) return
+        val service=Intent(c,AzanPlaybackService::class.java).putExtra("prayer",name)
+        try { if(Build.VERSION.SDK_INT>=26) c.startForegroundService(service) else c.startService(service) } catch (_: Exception) { }
     }
 }

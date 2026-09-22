@@ -1,6 +1,8 @@
 package com.alieba.app
 
 import android.app.*
+import android.content.Intent
+import java.util.Calendar
 import android.os.*
 import android.graphics.*
 import android.graphics.drawable.*
@@ -21,7 +23,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainActivity : Activity() {
-    private val brown=0xff8a4e32.toInt(); private val ink=0xff302823.toInt(); private val cream=0xfffff9f5.toInt()
+    private var currentPage="home"
+    private val brown=0xffb78c43.toInt(); private val ink=0xff153f35.toInt(); private val cream=0xfffffcf5.toInt()
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
 
@@ -30,6 +33,9 @@ class MainActivity : Activity() {
             false
         )
         window.statusBarColor = Color.TRANSPARENT
+        if(getSharedPreferences("alieba_setup",MODE_PRIVATE).getBoolean("news_notifications",true)) {
+            com.google.firebase.messaging.FirebaseMessaging.getInstance().subscribeToTopic("alieba_news")
+        }
 
         val setup = getSharedPreferences(
             "alieba_setup",
@@ -41,11 +47,14 @@ class MainActivity : Activity() {
             return
         }
 
-        AzanScheduler.scheduleAll(this)
-        showHome()
+        PrayerClock.fetchAndSchedule(this) { if(it && currentPage == "home") showHome() }
+        if (intent?.getBooleanExtra("open_news",false)==true) showNews() else showHome()
     }
 
+    override fun onNewIntent(i:Intent) {super.onNewIntent(i);setIntent(i);if(i.getBooleanExtra("open_news",false))showNews()}
+
     private fun showHome() {
+        currentPage="home"
         val v = home()
         setContentView(v)
 
@@ -102,6 +111,7 @@ class MainActivity : Activity() {
                     .edit()
                     .putBoolean("notifications", granted)
                     .apply()
+                if (granted) promptExactAlarmPermission()
             }
         }
     }
@@ -176,7 +186,7 @@ class MainActivity : Activity() {
         }
 
         root.addView(TextView(this).apply {
-            text = "Ali-eba"
+            text = "Alieba"
             textSize = 30f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(brown)
@@ -263,7 +273,7 @@ class MainActivity : Activity() {
         }
 
         root.addView(TextView(this).apply {
-            text = "Ali-eba"
+            text = "Alieba"
             textSize = 30f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(brown)
@@ -421,7 +431,7 @@ class MainActivity : Activity() {
         }
 
         root.addView(TextView(this).apply {
-            text = "Ali-eba"
+            text = "Alieba"
             textSize = 30f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(brown)
@@ -445,7 +455,7 @@ class MainActivity : Activity() {
         })
 
         root.addView(TextView(this).apply {
-            text = "Namaz vaxtı daxil olduqda Ali-eba sizə bildiriş göndərə və azan səsləndirə bilər."
+            text = "Namaz vaxtı daxil olduqda Alieba sizə bildiriş göndərə və azan səsləndirə bilər."
             textSize = 14f
             setTextColor(0xff756a64.toInt())
             gravity = Gravity.CENTER
@@ -479,7 +489,7 @@ class MainActivity : Activity() {
         })
 
         val start = TextView(this).apply {
-            text = "Ali-eba-ya başla"
+            text = "Alieba-ya başla"
             textSize = 17f
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
@@ -530,8 +540,9 @@ class MainActivity : Activity() {
                     )
                 }
 
-                AzanScheduler.scheduleAll(this@MainActivity)
+                PrayerClock.fetchAndSchedule(this@MainActivity)
                 showHome()
+                if(enabled && (Build.VERSION.SDK_INT < 33 || checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED)) promptExactAlarmPermission()
             }
         }
 
@@ -545,310 +556,128 @@ class MainActivity : Activity() {
         return root
     }
 
+    private val green=0xff0b4138.toInt()
+    private val gold=0xffe7c47b.toInt()
+    private fun tileBg(color:Int,r:Int=18):GradientDrawable = GradientDrawable().apply {setColor(color);cornerRadius=dp(r).toFloat()}
+    private fun label(text:String,size:Float,color:Int,bold:Boolean=false):TextView = TextView(this).apply {
+        this.text=text; textSize=size;setTextColor(color); gravity=Gravity.CENTER
+        if(bold) typeface=Typeface.DEFAULT_BOLD
+    }
     private fun home(): View {
-        val root = FrameLayout(this).apply {
-            setBackgroundColor(cream)
+        val nowText=java.text.SimpleDateFormat("HH:mm",java.util.Locale.US).format(java.util.Date())
+        val schedule=PrayerClock.times(this)
+        val rising=schedule["sunrise"] ?: "06:00"
+        val setting=schedule["sunset"] ?: "19:00"
+        val night=nowText < rising || nowText >= setting
+        val root=FrameLayout(this).apply { setBackgroundColor(Color.WHITE) }
+        val scroll=ScrollView(this).apply { isFillViewport=true;clipToPadding=false;setPadding(0,0,0,dp(76)) }
+        val body=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
+        val displayHeight=resources.displayMetrics.heightPixels
+        val heroHeight=(displayHeight*0.59f).toInt().coerceAtLeast(dp(370))
+        val hero=FrameLayout(this)
+        // Reuse the original mosque photograph; apply a night overlay after sunset.
+        hero.addView(ImageView(this).apply {setImageResource(R.drawable.mosque_bg);scaleType=ImageView.ScaleType.CENTER_CROP}, FrameLayout.LayoutParams(-1,-1))
+        if(night) {
+            hero.addView(View(this).apply {setBackgroundColor(0xb6001025.toInt())},FrameLayout.LayoutParams(-1,-1))
+            hero.addView(MosqueNightLights(this),FrameLayout.LayoutParams(-1,-1))
+        } else hero.addView(View(this).apply {background=GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,intArrayOf(0x660c302b,0x05000000,0x99081714.toInt()))},FrameLayout.LayoutParams(-1,-1))
+        val top=LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL;orientation=LinearLayout.HORIZONTAL;setPadding(dp(16),dp(12),dp(16),0)}
+        top.addView(label("☪  Alieba",21f,Color.WHITE,true),LinearLayout.LayoutParams(0,dp(48),1f))
+        val avatar=ImageView(this).apply {setImageResource(R.drawable.ic_profile);setColorFilter(Color.WHITE);background=tileBg(0x77000000,30);setPadding(dp(11),dp(11),dp(11),dp(11));setOnClickListener {showProfile()} }
+        top.addView(avatar,LinearLayout.LayoutParams(dp(44),dp(44)))
+        hero.addView(top,FrameLayout.LayoutParams(-1,dp(65),Gravity.TOP))
+        val quote=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(10),0,dp(10),0) }
+        quote.addView(label(if(night) "Həyatını Allahın rəngi ilə boya" else "Hər gün Allaha daha yaxın",24f,Color.WHITE),LinearLayout.LayoutParams(-1,-2))
+        quote.addView(label(if(night) "“Həqiqətən, Allah qəlbləri zikrlə rahatladır.”" else "“Allah zikr edənləri sevir.”",12f,Color.WHITE),LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(7)})
+        hero.addView(quote,FrameLayout.LayoutParams(-1,dp(100),Gravity.TOP).apply {topMargin=dp(90)})
+        val date=label(java.text.SimpleDateFormat("d MMMM, EEEE",java.util.Locale.forLanguageTag("az")).format(java.util.Date()),13f,Color.WHITE,true).apply {background=tileBg(0x99091212.toInt(),13);setPadding(dp(12),dp(4),dp(12),dp(4))}
+        hero.addView(date,FrameLayout.LayoutParams(-2,dp(37),Gravity.END or Gravity.CENTER_VERTICAL).apply {rightMargin=dp(12);topMargin=dp(45)})
+        hero.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(83),Gravity.BOTTOM).apply {bottomMargin=dp(5)})
+        body.addView(hero,LinearLayout.LayoutParams(-1,heroHeight))
+        val sections=HorizontalScrollView(this).apply {isHorizontalScrollBarEnabled=false;setBackgroundColor(Color.WHITE)}
+        val icons=LinearLayout(this).apply {orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL;setPadding(dp(8),dp(10),dp(8),dp(5))}
+        val entries=listOf(Triple("Quran",R.drawable.ic_quran,0xff16b3a2.toInt()),Triple("Məfatih",R.drawable.ic_dua,0xfff58a50.toInt()),Triple("Əhkam",R.drawable.ic_rules,0xff00a5d2.toInt()),Triple("Yeniliklər",R.drawable.ic_calendar,0xffdc449b.toInt()),Triple("Mərsiyələr",R.drawable.ic_audio,0xffd53644.toInt()),Triple("Hədislər",R.drawable.ic_hadith,0xff2c9a50.toInt()),Triple("Kitabxana",R.drawable.ic_library,0xff3257cc.toInt()),Triple("Ayarlar",R.drawable.ic_settings,0xff8a64b7.toInt()))
+        entries.forEach { (title,icon,color) ->
+            val cell=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER}
+            cell.addView(ImageView(this).apply {setImageResource(icon);setColorFilter(Color.WHITE);background=tileBg(color,12);setPadding(dp(11),dp(11),dp(11),dp(11))},LinearLayout.LayoutParams(dp(47),dp(47)))
+            cell.addView(label(title,10.5f,ink),LinearLayout.LayoutParams(dp(77),dp(24)))
+            cell.setOnClickListener { when(title) {
+                "Ayarlar"->prayerSettings();"Yeniliklər"->showNews()
+                else->openWebsiteSection(title)
+            } }
+            icons.addView(cell,LinearLayout.LayoutParams(dp(77),dp(80)))
         }
-
-        val scroll = ScrollView(this).apply {
-            isFillViewport = true
-            clipToPadding = false
-            setPadding(0, 0, 0, dp(82))
-        }
-
-        val body = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-
-        val hero = FrameLayout(this).apply {
-            layoutParams = LinearLayout.LayoutParams(-1, dp(245))
-            background = getDrawable(R.drawable.mosque_bg)
-        }
-
-        hero.addView(
-            View(this).apply {
-                background = GradientDrawable(
-                    GradientDrawable.Orientation.TOP_BOTTOM,
-                    intArrayOf(0x16000000, 0x78000000)
-                )
-            },
-            FrameLayout.LayoutParams(-1, -1)
-        )
-
-        hero.addView(
-            TextView(this).apply {
-                text = "Ali-eba"
-                textSize = 25f
-                setTextColor(Color.WHITE)
-                typeface = Typeface.DEFAULT_BOLD
-                setPadding(dp(18), dp(14), 0, 0)
-            }
-        )
-
-        val profile = ImageButton(this).apply {
-            setImageResource(R.drawable.ic_profile)
-            setColorFilter(Color.WHITE)
-            background = GradientDrawable().apply {
-                setColor(0x33000000)
-                shape = GradientDrawable.OVAL
-            }
-            setPadding(dp(9), dp(9), dp(9), dp(9))
-            setOnClickListener { showProfile() }
-        }
-
-        hero.addView(
-            profile,
-            FrameLayout.LayoutParams(
-                dp(43),
-                dp(43),
-                Gravity.TOP or Gravity.END
-            ).apply {
-                setMargins(0, dp(10), dp(14), 0)
-            }
-        )
-
-        hero.addView(
-            BirdSkyView(this),
-            FrameLayout.LayoutParams(-1, dp(155))
-        )
-
-        val heroWave = View(this).apply {
-            background = HeroWaveDrawable(Color.WHITE, dp(18).toFloat())
-        }
-
-        hero.addView(
-            heroWave,
-            FrameLayout.LayoutParams(-1, dp(28), Gravity.BOTTOM)
-        )
-
-        hero.addView(
-            prayerStrip(),
-            FrameLayout.LayoutParams(-1, dp(68), Gravity.BOTTOM).apply {
-                bottomMargin = dp(14)
-            }
-        )
-
-        body.addView(hero)
-
-        val grid = GridLayout(this).apply {
-            columnCount = 3
-            setPadding(dp(10), dp(17), dp(10), dp(14))
-            setBackgroundColor(Color.WHITE)
-        }
-
-        val items = listOf(
-            "Quran" to R.drawable.ic_quran,
-            "Məfatih" to R.drawable.ic_dua,
-            "Əhkam" to R.drawable.ic_rules,
-            "Təqvim" to R.drawable.ic_calendar,
-            "Mərsiyələr" to R.drawable.ic_audio,
-            "Hədis" to R.drawable.ic_hadith,
-            "Məşvərət" to R.drawable.ic_chat,
-            "Kitabxana" to R.drawable.ic_library,
-            "Qiblə" to R.drawable.ic_qibla,
-            "Zikr" to R.drawable.ic_tasbeh,
-            "Ayarlar" to R.drawable.ic_settings
-        )
-
-        items.forEach { (name, icon) ->
-            val cell = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
-                isClickable = true
-
-                addView(
-                    ImageView(this@MainActivity).apply {
-                        setImageResource(icon)
-                        val iconColor = when (name) {
-                            "Quran" -> 0xff2E7D32.toInt()
-                            "Məfatih" -> 0xff7B4FA3.toInt()
-                            "Əhkam" -> 0xffB06B32.toInt()
-                            "Təqvim" -> 0xff3979B8.toInt()
-                            "Mərsiyələr" -> 0xffB84B4B.toInt()
-                            "Hədis" -> 0xffD17A28.toInt()
-                            "Məşvərət" -> 0xff3F7C8C.toInt()
-                            "Kitabxana" -> 0xff795548.toInt()
-                            "Qiblə" -> 0xff168C83.toInt()
-                            "Zikr" -> 0xffC49324.toInt()
-                            "Ayarlar" -> 0xff687078.toInt()
-                            else -> brown
-                        }
-                        setColorFilter(iconColor)
-                        setPadding(dp(5), dp(5), dp(5), dp(5))
-                    },
-                    LinearLayout.LayoutParams(dp(42), dp(42))
-                )
-
-                addView(
-                    TextView(this@MainActivity).apply {
-                        text = name
-                        textSize = 12.5f
-                        gravity = Gravity.CENTER
-                        setTextColor(ink)
-                        maxLines = 1
-                    },
-                    LinearLayout.LayoutParams(-1, dp(28))
-                )
-
-                setOnClickListener {
-                    when (name) {
-                        "Quran" -> openSection("Quran", "Quran surələri, ayələr, tərcümə və audio")
-                        "Məfatih" -> openSection("Məfatih", "Dualar, ziyarətnamələr və gündəlik əməllər")
-                        "Əhkam" -> openSection("Əhkam", "Dini hökmlər və mövzular")
-                        "Təqvim" -> openSection("Təqvim", "Hicri təqvim, dini günlər və namaz vaxtları")
-                        "Mərsiyələr" -> openSection("Mərsiyələr", "Mərsiyə və dini audio bölməsi")
-                        "Hədis" -> openSection("Hədis", "Əhli-beyt hədisləri və mövzular")
-                        "Məşvərət" -> openSection("Məşvərət", "Sual verin və məsləhət alın")
-                        "Kitabxana" -> openSection("Kitabxana", "Dini kitablar və PDF kitabxanası")
-                        "Qiblə" -> openSection("Qiblə", "Qiblə istiqamətini müəyyən edin")
-                        "Zikr" -> openZikr()
-                        "Ayarlar" -> prayerSettings()
-                    }
-                }
-            }
-
-            grid.addView(
-                cell,
-                GridLayout.LayoutParams().apply {
-                    width = 0
-                    height = dp(78)
-                    columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                }
-            )
-        }
-
-        body.addView(grid)
-        scroll.addView(body)
-
-        root.addView(
-            scroll,
-            FrameLayout.LayoutParams(-1, -1)
-        )
-
-        root.addView(
-            bottomWave(),
-            FrameLayout.LayoutParams(-1, dp(88), Gravity.BOTTOM)
-        )
-
+        sections.addView(icons);body.addView(sections)
+        scroll.addView(body);root.addView(scroll,FrameLayout.LayoutParams(-1,-1))
+        root.addView(bottomWave(),FrameLayout.LayoutParams(-1,dp(79),Gravity.BOTTOM))
         return root
     }
-
     private fun prayerStrip(): View {
-        AzanScheduler.refreshTimes(this)
-        val p = getSharedPreferences("prayer_settings", MODE_PRIVATE)
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            setPadding(dp(5), dp(5), dp(5), dp(8))
-        }
-        val prayers = listOf(
-            "Fəcr" to p.getString("Fəcr_time", "--:--"),
-            "Günəş" to p.getString("Günəş_time", "--:--"),
-            "Zöhr" to p.getString("Zöhr_time", "--:--"),
-            "Əsr" to p.getString("Əsr_time", "--:--"),
-            "Məğrib" to p.getString("Məğrib_time", "--:--"),
-            "İşa" to p.getString("İşa_time", "--:--")
-        )
-        prayers.forEach { (name, time) ->
-            row.addView(TextView(this).apply {
-                text = "$name\n${time ?: "--:--"}"
-                textSize = 11.5f
-                gravity = Gravity.CENTER
-                setTextColor(Color.WHITE)
-                background = GradientDrawable().apply {
-                    setColor(0x66000000)
-                    cornerRadius = dp(15).toFloat()
-                }
-            }, LinearLayout.LayoutParams(0, -1, 1f).apply { setMargins(dp(2), 0, dp(2), 0) })
+        val t=PrayerClock.times(this)
+        val row=LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL;orientation=LinearLayout.HORIZONTAL;setPadding(dp(3),dp(3),dp(3),dp(4))}
+        for(i in PrayerClock.keys.indices) {
+            val name=PrayerClock.displayNames[i]
+            val time=t[PrayerClock.keys[i]]?:"--:--"
+            val item=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL;background=tileBg(0xb4000000.toInt(),12);setOnClickListener {prayerSettings()} }
+            item.addView(label(name,10f,Color.WHITE),LinearLayout.LayoutParams(-1,dp(22)))
+            item.addView(label(time,11f,if(time=="--:--") 0xfff4aa99.toInt() else Color.WHITE,true),LinearLayout.LayoutParams(-1,dp(22)))
+            row.addView(item,LinearLayout.LayoutParams(0,dp(63),1f).apply {setMargins(dp(2),0,dp(2),0)})
         }
         return row
     }
-
     private fun bottomWave(): View {
-        val wrap = FrameLayout(this).apply {
-            background = BottomWaveDrawable(Color.WHITE, dp(18).toFloat())
-            elevation = dp(10).toFloat()
+        val nav=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.HORIZONTAL;background=tileBg(Color.WHITE,20);elevation=dp(10).toFloat()}
+        fun add(title:String,icon:Int,action:()->Unit){
+            val b=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL}
+            b.addView(ImageView(this).apply {setImageResource(icon);setColorFilter(if(title=="Ana səhifə") 0xff255fd2.toInt() else ink)},LinearLayout.LayoutParams(dp(24),dp(24)))
+            b.addView(label(title,10f,ink),LinearLayout.LayoutParams(-1,dp(20)))
+            b.setOnClickListener {action()}; nav.addView(b,LinearLayout.LayoutParams(0,-1,1f))
         }
-
-        val bar = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.BOTTOM
-            setPadding(dp(28), dp(26), dp(28), dp(7))
+        add("Ana səhifə",R.drawable.ic_home){showHome()}
+        add("Yadda saxla",R.drawable.ic_heart){openWebsiteSection("Profilim")}
+        val center=ImageView(this).apply {setImageResource(R.drawable.ic_notification_mosque);scaleType=ImageView.ScaleType.CENTER_INSIDE;setPadding(dp(13),dp(13),dp(13),dp(13));background=tileBg(0xff1a58c8.toInt(),44);clipToOutline=true;setOnClickListener {showHome()} }
+        nav.addView(center,LinearLayout.LayoutParams(dp(58),dp(58)).apply {setMargins(dp(6),0,dp(6),0)})
+        add("Sevimlilər",R.drawable.ic_heart){openWebsiteSection("Profilim")}
+        add("Daha çox",R.drawable.ic_settings){moreOptions()}
+        return nav
+    }
+    private fun openWebsiteSection(section:String) {
+        val path=when(section){"Quran"->"quran";"Məfatih"->"mafatih";"Əhkam"->"ahkam";"Mərsiyələr"->"mersiye";"Hədislər"->"hadis";"Kitabxana"->"kitabxana";"Profilim"->"profil";else->""}
+        if(path.isEmpty())return
+        currentPage="section"
+        val root=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;background=tileBg(Color.WHITE)}
+        root.addView(label("‹    $section",20f,green,true).apply {gravity=Gravity.CENTER_VERTICAL;setPadding(dp(18),0,0,0);setOnClickListener{showHome()}},LinearLayout.LayoutParams(-1,dp(54)))
+        val web=android.webkit.WebView(this).apply {
+            settings.javaScriptEnabled=true;settings.domStorageEnabled=true
+            webViewClient=object:android.webkit.WebViewClient(){override fun shouldOverrideUrlLoading(v:android.webkit.WebView?,r:android.webkit.WebResourceRequest?):Boolean {
+                val u=r?.url ?: return false
+                if(u.host=="alieba.ge")return false
+                startActivity(Intent(Intent.ACTION_VIEW,u));return true
+            }}
+            loadUrl("https://alieba.ge/$path")
         }
-
-        fun nav(title: String, icon: Int, active: Boolean = false): LinearLayout {
-            return LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
-
-                addView(ImageView(this@MainActivity).apply {
-                    setImageResource(icon)
-                    setColorFilter(if (active) brown else 0xff817872.toInt())
-                }, LinearLayout.LayoutParams(dp(23), dp(23)))
-
-                addView(TextView(this@MainActivity).apply {
-                    text = title
-                    textSize = 10f
-                    gravity = Gravity.CENTER
-                    setTextColor(if (active) brown else 0xff817872.toInt())
-                })
-            }
-        }
-
-        val homeNav = nav("Ana səhifə", R.drawable.ic_home, true)
-        val supportNav = nav("Dəstək", R.drawable.ic_heart)
-
-        homeNav.setOnClickListener { showHome() }
-
-        supportNav.setOnClickListener {
-            openSection(
-                "Proqrama dəstək",
-                "Ali-eba layihəsinə dəstək və əlaqə bölməsi"
-            )
-        }
-
-        bar.addView(homeNav, LinearLayout.LayoutParams(0, -1, 1f))
-        bar.addView(Space(this), LinearLayout.LayoutParams(0, -1, 0.8f))
-        bar.addView(supportNav, LinearLayout.LayoutParams(0, -1, 1f))
-
-        wrap.addView(bar, FrameLayout.LayoutParams(-1, -1))
-
-        val ai = TextView(this).apply {
-            text = "AI"
-            textSize = 16f
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-            setTextColor(Color.WHITE)
-
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(brown)
-                setStroke(dp(4), Color.WHITE)
-            }
-
-            elevation = dp(12).toFloat()
-
-            setOnClickListener {
-                Toast.makeText(
-                    this@MainActivity,
-                    "Ali-eba AI Köməkçi",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-
-        wrap.addView(
-            ai,
-            FrameLayout.LayoutParams(
-                dp(58),
-                dp(58),
-                Gravity.TOP or Gravity.CENTER_HORIZONTAL
-            ).apply {
-                topMargin = dp(1)
-            }
-        )
-
-        return wrap
+        root.addView(web,LinearLayout.LayoutParams(-1,0,1f));setContentView(root)
+    }
+    private fun showNews() {
+        currentPage="news"
+        val root=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;setBackgroundColor(cream);setPadding(dp(15),dp(12),dp(15),0)}
+        root.addView(label("‹    Alieba yenilikləri",23f,green,true).apply {gravity=Gravity.CENTER_VERTICAL;setOnClickListener{showHome()}},LinearLayout.LayoutParams(-1,dp(54)))
+        val content=label("Yeniliklər yüklənir…",15f,ink)
+        val scroll=ScrollView(this);scroll.addView(content);root.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
+        setContentView(root)
+        Thread {
+            val text=try {
+                val conn=(java.net.URL("https://alieba.ge/api/news.php").openConnection() as java.net.HttpURLConnection).apply{connectTimeout=7000;readTimeout=7000}
+                val json=org.json.JSONObject(conn.inputStream.bufferedReader().use{it.readText()})
+                conn.disconnect()
+                val a=json.optJSONArray("items")
+                if(a==null || a.length()==0) "Hələ yenilik yoxdur." else (0 until a.length()).joinToString("\n\n") { j -> val n=a.getJSONObject(j);"${n.optString("title")}\n${n.optString("body")}" }
+            } catch (_:Exception){"Xəbər xidməti hələ qoşulmayıb. Sonra yenidən yoxlayın."}
+            runOnUiThread{content.text=text;content.gravity=Gravity.START;content.setPadding(dp(8),dp(10),dp(8),dp(10))}
+        }.start()
+    }
+    private fun moreOptions(){
+        AlertDialog.Builder(this).setTitle("Alieba").setItems(arrayOf("Profil", "Azan və bildiriş ayarları", "Yeniliklər", "Məkan və dil")) { _,index ->when(index){0->showProfile();1->prayerSettings();2->showNews();3->setContentView(firstSetup())} }.show()
     }
 
     private fun signInWithGoogle() {
@@ -935,7 +764,7 @@ class MainActivity : Activity() {
         )
 
         box.addView(TextView(this).apply {
-            text = user?.displayName ?: "Ali-eba istifadəçisi"
+            text = user?.displayName ?: "Alieba istifadəçisi"
             textSize = 20f
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
@@ -944,9 +773,9 @@ class MainActivity : Activity() {
 
         box.addView(TextView(this).apply {
             text = if (user != null) {
-                "${user.email ?: ""}\nAli-eba Coin: 0  •  Premium: Aktiv deyil"
+                "${user.email ?: ""}\nAlieba Coin: 0  •  Premium: Aktiv deyil"
             } else {
-                "Hesaba daxil olun\nAli-eba Coin: 0"
+                "Hesaba daxil olun\nAlieba Coin: 0"
             }
             textSize = 13f
             gravity = Gravity.CENTER
@@ -1013,7 +842,7 @@ class MainActivity : Activity() {
         }
 
         addItem(
-            "Ali-eba Coin və Premium",
+            "Alieba Coin və Premium",
             "Balans, Premium və gələcək xidmətlər"
         ) {
             Toast.makeText(this, "Coin və Premium", Toast.LENGTH_SHORT).show()
@@ -1023,12 +852,12 @@ class MainActivity : Activity() {
             "Tətbiq ayarları",
             "Dil, görünüş və digər seçimlər"
         ) {
-            Toast.makeText(this, "Tətbiq ayarları", Toast.LENGTH_SHORT).show()
+            moreOptions()
         }
 
         addItem(
             "Proqrama dəstək",
-            "Ali-eba layihəsinə dəstək və əlaqə"
+            "Alieba layihəsinə dəstək və əlaqə"
         ) {
             Toast.makeText(this, "Proqrama dəstək", Toast.LENGTH_SHORT).show()
         }
@@ -1054,127 +883,61 @@ class MainActivity : Activity() {
             .show()
     }
 
-    private fun prayerSettings() {
-        val prefs = getSharedPreferences("prayer_settings", MODE_PRIVATE)
-
-        val prayers = arrayOf(
-            "Fəcr",
-            "Zöhr",
-            "Əsr",
-            "Məğrib",
-            "İşa"
-        )
-
-        val defaults = arrayOf(
-            "05:19",
-            "12:55",
-            "16:19",
-            "19:26",
-            "00:14"
-        )
-
-        val scroll = ScrollView(this)
-
-        val box = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(18), dp(8), dp(18), dp(8))
+    private fun promptExactAlarmPermission(){
+        if(Build.VERSION.SDK_INT>=31 && !getSystemService(android.app.AlarmManager::class.java).canScheduleExactAlarms()) {
+            val p=getSharedPreferences("alieba_setup",MODE_PRIVATE)
+            if(p.getBoolean("exact_alarm_prompt_seen",false))return
+            p.edit().putBoolean("exact_alarm_prompt_seen",true).apply()
+            AlertDialog.Builder(this).setTitle("Azanı vaxtında səsləndir")
+                .setMessage("Android ayarlarında Alieba üçün dəqiq zəng icazəsini açın. İcazə verilməsə, bildiriş gecikə bilər.")
+                .setPositiveButton("İcazəni aç") {_,_->startActivity(Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,android.net.Uri.parse("package:$packageName")))}
+                .setNegativeButton("Sonra",null).show()
         }
-
-        box.addView(TextView(this).apply {
-            text = "Hər namaz üçün azan bildirişini ayrıca açıb-bağlaya bilərsiniz."
-            textSize = 13f
-            setTextColor(0xff756a64.toInt())
-            setPadding(0, 0, 0, dp(12))
-        })
-
-        prayers.forEachIndexed { index, name ->
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(12), dp(8), dp(8), dp(8))
-                background = GradientDrawable().apply {
-                    setColor(0xfffff7f2.toInt())
-                    cornerRadius = dp(13).toFloat()
-                }
-            }
-
-            val info = TextView(this).apply {
-                text = "$name\n${prefs.getString("${name}_time", defaults[index])}"
-                textSize = 14f
-                setTextColor(ink)
-            }
-
-            val toggle = Switch(this).apply {
-                isChecked = AzanPrefs.isPrayerEnabled(
-                    this@MainActivity,
-                    name
-                )
-
-                setOnCheckedChangeListener { _, checked ->
-                    AzanPrefs.setPrayerEnabled(
-                        this@MainActivity,
-                        name,
-                        checked
-                    )
-                }
-            }
-
-            row.addView(
-                info,
-                LinearLayout.LayoutParams(0, -2, 1f)
-            )
-            row.addView(toggle)
-
-            row.setOnClickListener {
-                val edit = EditText(this).apply {
-                    inputType = android.text.InputType.TYPE_CLASS_DATETIME
-                    setText(
-                        prefs.getString(
-                            "${name}_time",
-                            defaults[index]
-                        )
-                    )
-                    hint = "HH:mm"
-                }
-
-                AlertDialog.Builder(this)
-                    .setTitle("$name vaxtı")
-                    .setView(edit)
-                    .setPositiveButton("Yadda saxla") { _, _ ->
-                        prefs.edit()
-                            .putString("${name}_time", edit.text.toString())
-                            .apply()
-
-                        AzanScheduler.scheduleAll(this@MainActivity)
-                        info.text = "$name\n${edit.text}"
-                    }
-                    .setNegativeButton("Ləğv et", null)
-                    .show()
-            }
-
-            box.addView(
-                row,
-                LinearLayout.LayoutParams(-1, -2).apply {
-                    bottomMargin = dp(7)
-                }
-            )
-        }
-
-        box.addView(TextView(this).apply {
-            text = "Günəş vaxtı məlumat üçündür və azan bildirişi kimi idarə edilmir."
-            textSize = 11.5f
-            setTextColor(0xff817872.toInt())
-            setPadding(0, dp(5), 0, 0)
-        })
-
-        scroll.addView(box)
-
-        AlertDialog.Builder(this)
-            .setTitle("Azan ayarları")
-            .setView(scroll)
-            .setPositiveButton("Hazır", null)
-            .show()
     }
+    override fun onResume(){
+        super.onResume()
+        if(getSharedPreferences("alieba_setup",MODE_PRIVATE).getBoolean("completed",false)) PrayerClock.scheduleToday(this)
+    }
+    private fun prayerSettings() {
+        val p=getSharedPreferences("alieba_setup",MODE_PRIVATE)
+        val box=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;setPadding(dp(18),dp(10),dp(18),dp(10))}
+        val status=label("Namaz vaxtları: ${if(PrayerClock.times(this).isEmpty()) "API-dən yüklənməyib" else "alieba.ge API"}",13f,ink)
+        box.addView(status)
+        val global=Switch(this).apply {text="Azan bildirişləri";isChecked=p.getBoolean("notifications",false);setOnCheckedChangeListener { _,b ->p.edit().putBoolean("notifications",b).apply();PrayerClock.scheduleToday(this@MainActivity)}}
+        box.addView(global)
+        listOf("Fəcr","Zöhr","Əsr","Məğrib","İşa").forEach { name ->
+            val sw=Switch(this).apply { text="$name azanı";isChecked=AzanPrefs.isPrayerEnabled(this@MainActivity,name);setOnCheckedChangeListener { _,b ->AzanPrefs.setPrayerEnabled(this@MainActivity,name,b);PrayerClock.scheduleToday(this@MainActivity)}}
+            box.addView(sw)
+        }
+        val news=Switch(this).apply {text="Yenilik xəbər bildirişləri";isChecked=p.getBoolean("news_notifications",true);setOnCheckedChangeListener{_,b->p.edit().putBoolean("news_notifications",b).apply();com.google.firebase.messaging.FirebaseMessaging.getInstance().let { if(b)it.subscribeToTopic("alieba_news") else it.unsubscribeFromTopic("alieba_news") } }}
+        box.addView(news)
+        val sound=label("Azan səsini seç və ya öz səsini yüklə",15f,green,true)
+        box.addView(sound,LinearLayout.LayoutParams(-1,dp(45)))
+        sound.setOnClickListener {
+            AlertDialog.Builder(this).setTitle("Azan səsi").setItems(arrayOf("Şiə azanı", "Azan 1", "Azan 2", "Telefonumdan azan seç")) {_,which->
+                when(which){0->AzanPrefs.setSound(this,"shia");1->AzanPrefs.setSound(this,"beautiful1");2->AzanPrefs.setSound(this,"beautiful2");3->{val pick=Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("audio/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);startActivityForResult(pick,98)}}
+            }.show()
+        }
+        val refresh=label("Namaz vaxtlarını yenilə",15f,green,true)
+        box.addView(refresh,LinearLayout.LayoutParams(-1,dp(48)))
+        refresh.setOnClickListener {status.text="Vaxtlar yüklənir…";PrayerClock.fetchAndSchedule(this){ok->status.text=if(ok)"Bugünkü vaxtlar yeniləndi" else "API əlçatan deyil; vaxtlar təxmin edilmədi.";if(ok)showHome()} }
+        val exact=label("Dəqiq zəng icazəsini yoxla",14f,green)
+        box.addView(exact,LinearLayout.LayoutParams(-1,dp(46)))
+        exact.setOnClickListener {if(Build.VERSION.SDK_INT>=31 && !(getSystemService(android.app.AlarmManager::class.java).canScheduleExactAlarms()))startActivity(Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,android.net.Uri.parse("package:$packageName"))) else Toast.makeText(this,"Dəqiq siqnallar aktivdir",Toast.LENGTH_SHORT).show() }
+        AlertDialog.Builder(this).setTitle("Azan və bildirişlər").setView(ScrollView(this).apply{addView(box)}).setPositiveButton("Hazır") {_,_->PrayerClock.scheduleToday(this);showHome()}.show()
+    }
+    override fun onActivityResult(requestCode:Int,resultCode:Int,data:Intent?){
+        super.onActivityResult(requestCode,resultCode,data)
+        if(requestCode==98 && resultCode==RESULT_OK && data?.data!=null) {
+            val uri=data.data!!
+            try{contentResolver.takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION)}catch(_:Exception){}
+            getSharedPreferences("azan_settings",MODE_PRIVATE).edit().putString("custom_uri",uri.toString()).apply()
+            AzanPrefs.setSound(this,"custom")
+            Toast.makeText(this,"Seçdiyiniz azan yadda saxlandı",Toast.LENGTH_SHORT).show()
+        }
+    }
+    @Deprecated("Handled for legacy Android and the section view")
+    override fun onBackPressed(){if(currentPage!="home"){showHome()}else super.onBackPressed()}
 
     private fun openSection(title: String, description: String) {
         val root = LinearLayout(this).apply {
