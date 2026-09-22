@@ -65,7 +65,7 @@ class NativeContentActivity:Activity() {
         val scroll=ScrollView(this).apply{isFillViewport=true;clipToPadding=false;background=AliebaPatternDrawable(resources.displayMetrics.density)}
         body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(17),dp(16),dp(17),dp(30))}
         scroll.addView(body);root.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
-        root.addView(AliebaBottomNav.make(this,section),LinearLayout.LayoutParams(-1,dp(93)))
+        root.addView(AliebaBottomNav.make(this,section),LinearLayout.LayoutParams(-1,dp(87)))
         setContentView(root)
     }
     private fun heading(t:String){body.addView(text(t,26f,ink,true),LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(9)})}

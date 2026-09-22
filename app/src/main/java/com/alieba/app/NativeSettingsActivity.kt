@@ -101,7 +101,7 @@ class NativeSettingsActivity: Activity() {
   }
   val screen=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;background=AliebaPatternDrawable(resources.displayMetrics.density)}
   screen.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
-  screen.addView(AliebaBottomNav.make(this,"settings"),LinearLayout.LayoutParams(-1,dp(93)))
+  screen.addView(AliebaBottomNav.make(this,"settings"),LinearLayout.LayoutParams(-1,dp(87)))
   setContentView(screen)
  }
  @Deprecated("File chooser compatibility")

@@ -61,11 +61,14 @@ class MainActivity : Activity() {
         val v = home()
         setContentView(v)
 
+        // Edge-to-edge screens must reserve BOTH the phone's status-bar and
+        // gesture/navigation areas; do not place Alieba icons beneath either.
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.WHITE
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         ViewCompat.setOnApplyWindowInsetsListener(v) { view, insets ->
-            val bars = insets.getInsets(
-                WindowInsetsCompat.Type.systemBars()
-            )
-            view.setPadding(0, 0, 0, bars.bottom)
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(0, bars.top, 0, bars.bottom)
             insets
         }
     }
@@ -184,19 +187,26 @@ class MainActivity : Activity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(24), dp(60), dp(24), dp(28))
-            setBackgroundColor(cream)
+            setPadding(dp(20), dp(18), dp(20), dp(24))
+            background=AliebaPatternDrawable(resources.displayMetrics.density)
         }
 
-        root.addView(TextView(this).apply {
-            text = "Alieba"
-            textSize = 30f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(brown)
-            gravity = Gravity.CENTER
-        })
-
-        root.addView(TextView(this).apply {
+        root.addView(LinearLayout(this).apply {
+            gravity=Gravity.CENTER_VERTICAL
+            orientation=LinearLayout.VERTICAL
+            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(0xff0d473e.toInt(),0xff247668.toInt())).apply {cornerRadius=dp(22).toFloat()}
+            setPadding(dp(18),dp(16),dp(18),dp(16))
+            addView(TextView(this@MainActivity).apply {
+                text="☪  Alieba"
+                textSize=25f;typeface=Typeface.DEFAULT_BOLD;setTextColor(0xfff4d995.toInt())
+            })
+            addView(TextView(this@MainActivity).apply {
+                text="Qəlbinə yaxın bir dünya"
+                textSize=13f;setTextColor(Color.WHITE);setPadding(0,dp(6),0,0)
+            })
+        },LinearLayout.LayoutParams(-1,dp(100)).apply {bottomMargin=dp(18)})
+root.addView(TextView(this).apply {
             text = "1 / 3"
             textSize = 13f
             setTextColor(0xff8d817a.toInt())
@@ -271,19 +281,26 @@ class MainActivity : Activity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(24), dp(60), dp(24), dp(28))
-            setBackgroundColor(cream)
+            setPadding(dp(20), dp(18), dp(20), dp(24))
+            background=AliebaPatternDrawable(resources.displayMetrics.density)
         }
 
-        root.addView(TextView(this).apply {
-            text = "Alieba"
-            textSize = 30f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(brown)
-            gravity = Gravity.CENTER
-        })
-
-        root.addView(TextView(this).apply {
+        root.addView(LinearLayout(this).apply {
+            gravity=Gravity.CENTER_VERTICAL
+            orientation=LinearLayout.VERTICAL
+            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(0xff0d473e.toInt(),0xff247668.toInt())).apply {cornerRadius=dp(22).toFloat()}
+            setPadding(dp(18),dp(16),dp(18),dp(16))
+            addView(TextView(this@MainActivity).apply {
+                text="☪  Alieba"
+                textSize=25f;typeface=Typeface.DEFAULT_BOLD;setTextColor(0xfff4d995.toInt())
+            })
+            addView(TextView(this@MainActivity).apply {
+                text="Namaz vaxtları olduğun məkana uyğun"
+                textSize=13f;setTextColor(Color.WHITE);setPadding(0,dp(6),0,0)
+            })
+        },LinearLayout.LayoutParams(-1,dp(100)).apply {bottomMargin=dp(18)})
+root.addView(TextView(this).apply {
             text = "2 / 3"
             textSize = 13f
             setTextColor(0xff8d817a.toInt())
@@ -429,19 +446,26 @@ class MainActivity : Activity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(24), dp(60), dp(24), dp(28))
-            setBackgroundColor(cream)
+            setPadding(dp(20), dp(18), dp(20), dp(24))
+            background=AliebaPatternDrawable(resources.displayMetrics.density)
         }
 
-        root.addView(TextView(this).apply {
-            text = "Alieba"
-            textSize = 30f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(brown)
-            gravity = Gravity.CENTER
-        })
-
-        root.addView(TextView(this).apply {
+        root.addView(LinearLayout(this).apply {
+            gravity=Gravity.CENTER_VERTICAL
+            orientation=LinearLayout.VERTICAL
+            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(0xff0d473e.toInt(),0xff247668.toInt())).apply {cornerRadius=dp(22).toFloat()}
+            setPadding(dp(18),dp(16),dp(18),dp(16))
+            addView(TextView(this@MainActivity).apply {
+                text="☪  Alieba"
+                textSize=25f;typeface=Typeface.DEFAULT_BOLD;setTextColor(0xfff4d995.toInt())
+            })
+            addView(TextView(this@MainActivity).apply {
+                text="Azan səsləri və bildirişlər sənin seçimində"
+                textSize=13f;setTextColor(Color.WHITE);setPadding(0,dp(6),0,0)
+            })
+        },LinearLayout.LayoutParams(-1,dp(100)).apply {bottomMargin=dp(18)})
+root.addView(TextView(this).apply {
             text = "3 / 3"
             textSize = 13f
             setTextColor(0xff8d817a.toInt())
@@ -572,27 +596,50 @@ class MainActivity : Activity() {
         val dawn=t["sunrise"] ?: "06:00"
         val dusk=t["sunset"] ?: "19:00"
         val night=nowText < dawn || nowText >= dusk
-        val root=FrameLayout(this).apply { background=AliebaPatternDrawable(resources.displayMetrics.density) }
-        val scroll=ScrollView(this).apply {isFillViewport=true;clipToPadding=false;setPadding(0,0,0,dp(95))}
+        val root=FrameLayout(this).apply {
+            setBackgroundColor(if(night)0xff0b2634.toInt() else 0xff65a9c3.toInt())
+        }
+        val scroll=ScrollView(this).apply {isFillViewport=true;clipToPadding=false;setPadding(0,0,0,dp(108))}
         val body=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL}
-        val heroHeight=(resources.displayMetrics.heightPixels * .51f).toInt().coerceIn(dp(390),dp(540))
+        val heroHeight=(resources.displayMetrics.heightPixels * .48f).toInt().coerceIn(dp(345),dp(490))
         val hero=FrameLayout(this)
         hero.addView(MosqueSceneView(this,night),FrameLayout.LayoutParams(-1,-1))
-        val top=LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL;orientation=LinearLayout.HORIZONTAL;setPadding(dp(17),dp(8),dp(17),0)}
-        val mark=label("☪  Alieba App",19f,Color.WHITE,true).apply {gravity=Gravity.START or Gravity.CENTER_VERTICAL;setShadowLayer(3f,0f,2f,0x77000000)}
-        top.addView(mark,LinearLayout.LayoutParams(0,dp(48),1f))
-        val avatar=ImageView(this).apply {setImageResource(R.drawable.ic_profile);setColorFilter(Color.WHITE);background=tileBg(0x880c3034.toInt(),30);setPadding(dp(11),dp(11),dp(11),dp(11));setOnClickListener {showProfile()} }
-        top.addView(avatar,LinearLayout.LayoutParams(dp(46),dp(46)))
-        hero.addView(top,FrameLayout.LayoutParams(-1,dp(66),Gravity.TOP))
-        val quote=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(16),0,dp(16),0)}
-        quote.addView(label(if(night) "Həyatını Allahın rəngi ilə boya" else "Hər gün Allaha daha yaxın",23f,Color.WHITE).apply {setShadowLayer(4f,0f,2f,0x88000000.toInt())},LinearLayout.LayoutParams(-1,-2))
-        quote.addView(label(if(night) "“Qəlblər Allahı zikr etməklə rahatlıq tapır.”" else "“Allah zikr edənləri sevir.”",12f,Color.WHITE).apply {setShadowLayer(3f,0f,2f,0x88000000.toInt())},LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(8)})
-        hero.addView(quote,FrameLayout.LayoutParams(-1,dp(112),Gravity.TOP).apply {topMargin=dp(81)})
+        val top=LinearLayout(this).apply {
+            gravity=Gravity.CENTER_VERTICAL;orientation=LinearLayout.HORIZONTAL
+            setPadding(dp(13),dp(8),dp(17),0)
+        }
+        val brandIcon=label("☪",23f,0xfff5d999.toInt(),true).apply {
+            background=tileBg(0x990e4644.toInt(),13)
+        }
+        top.addView(brandIcon,LinearLayout.LayoutParams(dp(45),dp(45)))
+        val names=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER_VERTICAL;setPadding(dp(9),0,0,0)}
+        names.addView(label("Alieba App",18f,Color.WHITE,true).apply {gravity=Gravity.START})
+        names.addView(label("İmanla yaşa",10f,0xfff3e4bb.toInt()).apply {gravity=Gravity.START})
+        top.addView(names,LinearLayout.LayoutParams(0,dp(52),1f))
+        val avatar=ImageView(this).apply {
+            setImageResource(R.drawable.ic_profile);setColorFilter(Color.WHITE)
+            background=tileBg(0xad103d3a.toInt(),28)
+            setPadding(dp(12),dp(12),dp(12),dp(12));setOnClickListener{showProfile()}
+        }
+        top.addView(avatar,LinearLayout.LayoutParams(dp(48),dp(48)))
+        hero.addView(top,FrameLayout.LayoutParams(-1,dp(68),Gravity.TOP).apply {topMargin=dp(9)})
+        val quote=LinearLayout(this).apply {
+            orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER
+            setPadding(dp(18),dp(8),dp(18),dp(8))
+            background=tileBg(if(night)0x6005202c else 0x9beaf7f4.toInt(),19)
+        }
+        quote.addView(label(if(night) "Həyatını Allahın rəngi ilə boya" else "Hər gün Allaha daha yaxın",
+            20f,if(night)Color.WHITE else 0xff163f3c.toInt(),true),LinearLayout.LayoutParams(-1,-2))
+        quote.addView(label(if(night) "Qəlblər Allahı zikr etməklə rahatlıq tapır. · Rəd, 28" else "Allah zikr edənləri sevir. · Bəqərə, 152",
+            11f,if(night)0xfff5dfae.toInt() else 0xff285c50.toInt()),LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(5)})
+        hero.addView(quote,FrameLayout.LayoutParams(-1,dp(105),Gravity.TOP).apply {
+            topMargin=dp(77);leftMargin=dp(14);rightMargin=dp(14)
+        })
         val date=label(java.text.SimpleDateFormat("d MMMM, EEEE",java.util.Locale.forLanguageTag("az")).format(java.util.Date()),13f,Color.WHITE,true).apply {background=tileBg(0xa0103334.toInt(),15);setPadding(dp(11),dp(4),dp(11),dp(4))}
-        hero.addView(date,FrameLayout.LayoutParams(-2,dp(38),Gravity.END or Gravity.BOTTOM).apply {rightMargin=dp(12);bottomMargin=dp(133)})
+        hero.addView(date,FrameLayout.LayoutParams(-2,dp(38),Gravity.END or Gravity.BOTTOM).apply {rightMargin=dp(12);bottomMargin=dp(121)})
         // S-shaped white boundary. Timings float ABOVE the boundary like the reference.
         hero.addView(View(this).apply {background=HeroWaveDrawable(0xfff7faf7.toInt(),dp(23).toFloat())},FrameLayout.LayoutParams(-1,dp(39),Gravity.BOTTOM))
-        hero.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(94),Gravity.BOTTOM).apply {bottomMargin=dp(27)})
+        hero.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(88),Gravity.BOTTOM).apply {bottomMargin=dp(29)})
         body.addView(hero,LinearLayout.LayoutParams(-1,heroHeight))
         val sections=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL
@@ -629,7 +676,7 @@ class MainActivity : Activity() {
         }
         sections.addView(icons,LinearLayout.LayoutParams(-1,-2));body.addView(sections)
         scroll.addView(body);root.addView(scroll,FrameLayout.LayoutParams(-1,-1))
-        root.addView(bottomWave(),FrameLayout.LayoutParams(-1,dp(93),Gravity.BOTTOM))
+        root.addView(bottomWave(),FrameLayout.LayoutParams(-1,dp(87),Gravity.BOTTOM))
         return root
     }
     private fun blend(a:Int,b:Int,f:Float):Int = Color.rgb(

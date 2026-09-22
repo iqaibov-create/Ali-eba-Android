@@ -1,1 +1,9 @@
-<resources><style name="Theme.Alieba" parent="Theme.MaterialComponents.DayNight.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:statusBarColor">@android:color/transparent</item><item name="android:navigationBarColor">#FFFFFF</item></style></resources>
+<resources>
+    <style name="Theme.Alieba" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:statusBarColor">#16463E</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+    </style>
+</resources>

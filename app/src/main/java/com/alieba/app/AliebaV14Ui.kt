@@ -14,34 +14,49 @@ import kotlin.math.min
 /** Canvas-only decor: original user-provided photograph, no newly generated images. */
 class MosqueSceneView(c:Context,private val night:Boolean):View(c){
     private val bitmap=BitmapFactory.decodeResource(resources,R.drawable.mosque_bg)
-    private val paint=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val p=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     override fun onDraw(canvas:Canvas){
         val w=width.toFloat();val h=height.toFloat()
-        if(w<=0||h<=0)return
-        paint.shader=LinearGradient(0f,0f,0f,h,
-            if(night)0xff061827.toInt() else 0xff3d96b9.toInt(),
-            if(night)0xff16403e.toInt() else 0xffa9d8e6.toInt(),Shader.TileMode.CLAMP)
-        canvas.drawRect(0f,0f,w,h,paint);paint.shader=null
-        val imageH=w*bitmap.height/bitmap.width.toFloat()
-        val top=h-imageH
-        paint.colorFilter=if(night)ColorMatrixColorFilter(floatArrayOf(
-            .27f,0f,0f,0f,0f, 0f,.35f,0f,0f,0f, 0f,0f,.54f,0f,0f, 0f,0f,0f,1f,0f
-        )) else null
-        canvas.drawBitmap(bitmap,null,RectF(0f,top,w,h),paint)
-        paint.colorFilter=null
-        // Blend the top edge of the landscape photograph into the extended sky.
-        paint.shader=LinearGradient(0f,top,0f,top+min(70f,imageH*.35f),
-            if(night)0xff122f38.toInt() else 0xff86c0d3.toInt(),Color.TRANSPARENT,Shader.TileMode.CLAMP)
-        canvas.drawRect(0f,top,w,top+min(70f,imageH*.35f),paint);paint.shader=null
+        if(w<=0f||h<=0f)return
+        // Use ALL of the supplied mosque photograph from the TOP. No opaque
+        // placeholder sky hiding the roof and minaret as in V14.
+        p.shader=null;p.colorFilter=null;p.color=Color.WHITE
+        canvas.drawBitmap(bitmap,null,RectF(0f,0f,w,h),p)
         if(night){
-            // Discreet warm facade lights; highlights never replace the supplied photo.
-            paint.shader=RadialGradient(w*.52f,h*.86f,w*.4f,
-                intArrayOf(0x6ff3c76a,0x18f8dba6,Color.TRANSPARENT),null,Shader.TileMode.CLAMP)
-            canvas.drawRect(0f,top,w,h,paint);paint.shader=null
+            p.color=0xb00a1c34.toInt() // Real night-darkening of the entire photograph.
+            canvas.drawRect(0f,0f,w,h,p)
+            // Illuminated arches, minaret and garden posts, anchored to this photo.
+            // These are Android Canvas lighting effects, not a second stock photo.
+            fun lamp(x:Float,y:Float,r:Float,power:Int){
+                p.shader=RadialGradient(w*x,h*y,w*r,
+                    intArrayOf(power,0x36f4ba66,Color.TRANSPARENT),null,Shader.TileMode.CLAMP)
+                canvas.drawCircle(w*x,h*y,w*r,p);p.shader=null
+            }
+            lamp(.29f,.68f,.15f,0xb7ffe6a1.toInt())
+            lamp(.37f,.67f,.14f,0x9dffd788.toInt())
+            lamp(.48f,.67f,.15f,0x9affd991.toInt())
+            lamp(.57f,.54f,.13f,0x7dffc774.toInt())
+            lamp(.49f,.82f,.16f,0x7dffd991.toInt())
+            lamp(.29f,.78f,.12f,0xc1ffe0a1.toInt())
+            lamp(.59f,.78f,.12f,0xb5ffe6b0.toInt())
+            lamp(.75f,.79f,.12f,0x92ffdda4.toInt())
+            lamp(.57f,.19f,.10f,0x73f7b86a.toInt())
+            // A restrained night moon and stars over the sky.
+            p.shader=null;p.color=0xfff3e5bb.toInt()
+            canvas.drawCircle(w*.13f,h*.13f,w*.023f,p)
+            p.color=0xff12314a.toInt()
+            canvas.drawCircle(w*.139f,h*.122f,w*.021f,p)
+            p.color=0xb8fff4d4.toInt()
+            for(pt in arrayOf(.25f to .07f,.36f to .12f,.73f to .08f,.81f to .16f,.17f to .28f)){
+                canvas.drawCircle(w*pt.first,h*pt.second,w*.0025f,p)
+            }
+        } else {
+            // Light text-contrast gradient only; do NOT cover half the picture.
+            p.shader=LinearGradient(0f,0f,0f,h*.27f,
+                0x4d0e3943,Color.TRANSPARENT,Shader.TileMode.CLAMP)
+            canvas.drawRect(0f,0f,w,h*.27f,p);p.shader=null
         }
-        paint.shader=LinearGradient(0f,h*.45f,0f,h,
-            0x0005161b,if(night)0x94030e18.toInt() else 0x43061a1d,Shader.TileMode.CLAMP)
-        canvas.drawRect(0f,h*.45f,w,h,paint);paint.shader=null
+        p.color=Color.WHITE
     }
 }
 
@@ -76,50 +91,79 @@ class AliebaPatternDrawable(private val density:Float):Drawable(){
 object AliebaBottomNav {
     private fun dp(c:Context,x:Int)=(x*c.resources.displayMetrics.density).toInt()
     private fun tintFor(section:String)=when(section){
-        "quran"->0xff12bfa6.toInt();"mafatih"->0xffec8e59.toInt();"ahkam"->0xff06a4c8.toInt()
-        "news"->0xffd54b97.toInt();"hadis"->0xff34a15b.toInt();"mersiye"->0xffbc3c4c.toInt()
+        "quran"->0xff10a995.toInt();"mafatih"->0xffec8e59.toInt();"ahkam"->0xff0696bd.toInt()
+        "news"->0xffd54b97.toInt();"hadis"->0xff269356.toInt();"mersiye"->0xffbc3c4c.toInt()
         "kitabxana"->0xff3b5aca.toInt();"saved"->0xff9b6fc4.toInt();"settings"->0xff2c896e.toInt()
-        else->0xff215cbf.toInt()
+        else->0xff255fd0.toInt()
     }
     fun make(activity:Activity,section:String):View {
         val c:Context=activity
-        val active=tintFor(section)
-        val bar=LinearLayout(c).apply {
-            gravity=Gravity.CENTER_VERTICAL
-            orientation=LinearLayout.HORIZONTAL
-            background=BottomWaveDrawable(Color.WHITE,dp(c,27).toFloat())
-            elevation=dp(c,8).toFloat()
-            setPadding(dp(c,3),dp(c,19),dp(c,3),dp(c,3))
-        }
-        fun sectionIntent(to:String){
+        val accent=tintFor(section)
+        fun open(to:String){
             when(to){
-                "home"->{activity.startActivity(Intent(c,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP));if(activity !is MainActivity)activity.finish()}
+                "home"->{
+                    if(activity is MainActivity) return
+                    activity.startActivity(Intent(c,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+                    activity.finish()
+                }
                 "settings"->if(activity !is NativeSettingsActivity)activity.startActivity(Intent(c,NativeSettingsActivity::class.java))
                 "ai"->AlertDialog.Builder(activity).setTitle("Alieba köməkçi")
-                    .setMessage("AI köməkçi hazırlıq mərhələsindədir. Hələlik namaz vaxtlarına və ayarlara keçə bilərsiniz.")
+                    .setMessage("Alieba köməkçisi hazırlanır. Hazırda namaz vaxtlarına və ayarlara keçə bilərsiniz.")
                     .setPositiveButton("Azan ayarları"){_,_->activity.startActivity(Intent(c,NativeSettingsActivity::class.java))}
                     .setNegativeButton("Bağla",null).show()
-                else-> if(!(activity is NativeContentActivity && section==to))activity.startActivity(Intent(c,NativeContentActivity::class.java).putExtra("section",to))
+                else->if(!(activity is NativeContentActivity && section==to)){
+                    activity.startActivity(Intent(c,NativeContentActivity::class.java).putExtra("section",to))
+                }
             }
         }
-        fun cell(title:String,icon:Int,destination:String){
-            val selected=section==destination
-            val v=LinearLayout(c).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL;setOnClickListener{sectionIntent(destination)}}
-            v.addView(ImageView(c).apply {setImageResource(icon);setColorFilter(if(selected)active else 0xff586c68.toInt())},LinearLayout.LayoutParams(dp(c,24),dp(c,24)))
-            v.addView(TextView(c).apply {text=title;textSize=9.3f;gravity=Gravity.CENTER;setTextColor(if(selected)active else 0xff66756f.toInt());maxLines=1},LinearLayout.LayoutParams(-1,dp(c,18)))
-            bar.addView(v,LinearLayout.LayoutParams(0,-1,1f))
+        val frame=FrameLayout(c).apply {
+            background=BottomWaveDrawable(Color.WHITE,dp(c,24).toFloat())
+            elevation=dp(c,6).toFloat()
+            clipChildren=false;clipToPadding=false
+        }
+        val line=LinearLayout(c).apply {
+            orientation=LinearLayout.HORIZONTAL;gravity=Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            setPadding(dp(c,6),dp(c,22),dp(c,6),dp(c,6))
+            clipChildren=false
+        }
+        fun cell(title:String,icon:Int,to:String){
+            val selected=section==to
+            val v=LinearLayout(c).apply {
+                orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER
+                setOnClickListener{open(to)}
+            }
+            v.addView(ImageView(c).apply {
+                setImageResource(icon)
+                setColorFilter(if(selected)accent else 0xff546b69.toInt())
+            },LinearLayout.LayoutParams(dp(c,22),dp(c,22)))
+            v.addView(TextView(c).apply {
+                text=title;textSize=9.5f;gravity=Gravity.CENTER
+                setTextColor(if(selected)accent else 0xff506662.toInt())
+                isSingleLine=true
+                setPadding(0,dp(c,3),0,0)
+            },LinearLayout.LayoutParams(-1,dp(c,20)))
+            line.addView(v,LinearLayout.LayoutParams(0,dp(c,55),1f))
         }
         cell("Ana səhifə",R.drawable.ic_home,"home")
         cell("Yadda saxla",R.drawable.ic_heart,"saved")
-        val center=FrameLayout(c).apply {
-            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(active,0xff4fbfba.toInt())).apply{cornerRadius=dp(c,38).toFloat()}
-            elevation=dp(c,6).toFloat()
-            setOnClickListener{sectionIntent("ai")}
-        }
-        center.addView(ImageView(c).apply{setImageResource(R.drawable.ic_alieba_ai);setColorFilter(Color.WHITE);setPadding(dp(c,11),dp(c,11),dp(c,11),dp(c,11))},FrameLayout.LayoutParams(-1,-1))
-        bar.addView(center,LinearLayout.LayoutParams(dp(c,62),dp(c,62)).apply {bottomMargin=dp(c,8)})
+        line.addView(View(c),LinearLayout.LayoutParams(dp(c,70),dp(c,48)))
         cell("Yeniliklər",R.drawable.ic_calendar,"news")
         cell("Ayarlar",R.drawable.ic_settings,"settings")
-        return bar
+        frame.addView(line,FrameLayout.LayoutParams(-1,-1))
+        val center=FrameLayout(c).apply {
+            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(accent,if(section=="home")0xff228dc5.toInt() else 0xff75b9a7.toInt())).apply {
+                shape=GradientDrawable.OVAL
+            }
+            elevation=dp(c,5).toFloat()
+            setOnClickListener{open("ai")}
+        }
+        center.addView(ImageView(c).apply {
+            setImageResource(R.drawable.ic_alieba_ai)
+            setColorFilter(Color.WHITE)
+            setPadding(dp(c,14),dp(c,14),dp(c,14),dp(c,14))
+        },FrameLayout.LayoutParams(-1,-1))
+        frame.addView(center,FrameLayout.LayoutParams(dp(c,66),dp(c,66),Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply {topMargin=dp(c,1)})
+        return frame
     }
 }
