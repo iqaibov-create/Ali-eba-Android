@@ -16,9 +16,24 @@ import java.util.TimeZone
 /** The same public prayer API used by alieba.ge. Never infer timings from a stale day. */
 object PrayerClock {
     private const val PREF = "alieba_prayer_clock"
-    val displayNames = listOf("Fəcr", "Günəş", "Zöhr", "Əsr", "Məğrib", "İşa")
-    val keys = listOf("fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha")
-    private val fetchKeys=keys + listOf("sunset")
+    val displayNames = listOf("Fəcr", "Günəş\ndoğuşu", "Zöhr", "Günəş\nbatımı", "Məğrib", "Gecə\nyarısı")
+    val keys = listOf("fajr", "sunrise", "dhuhr", "sunset", "maghrib", "midnight")
+    private val fetchKeys=(keys + listOf("asr", "isha")).distinct()
+    /** Highlight the current time segment only from today's confirmed API data. */
+    fun activeKey(c: Context):String? {
+        val t=times(c)
+        if(t.isEmpty())return null
+        val now=Calendar.getInstance().run{get(Calendar.HOUR_OF_DAY)*60+get(Calendar.MINUTE)}
+        val passed=keys.mapNotNull { k ->
+            val m=Regex("""^([0-2]\d):([0-5]\d)$""").matchEntire(t[k]?:"")
+                ?:return@mapNotNull null
+            val h=m.groupValues[1].toInt()
+            if(h>23)return@mapNotNull null
+            val minute=h*60+m.groupValues[2].toInt()
+            if(minute<=now) k to minute else null
+        }
+        return passed.maxByOrNull{it.second}?.first
+    }
     private val alarmNames = listOf("Fəcr", "Zöhr", "Əsr", "Məğrib", "İşa")
     private val alarmKeys = listOf("fajr", "dhuhr", "asr", "maghrib", "isha")
 
@@ -58,7 +73,7 @@ object PrayerClock {
                             // The site cache can return the previous date around midnight.
                             if(t != null && (responseDate.isEmpty() || responseDate==today())) {
                                 val parsed=fetchKeys.mapNotNull { key ->
-                                    val raw=t.optString(key, "").trim()
+                                    val raw=if(key=="midnight") t.optString("midnight",t.optString("night_midpoint","")).trim() else t.optString(key, "").trim()
                                     val hm=Regex("(?:^|T|\\s)([0-2]\\d:[0-5]\\d)").find(raw)?.groupValues?.get(1)
                                     if(hm != null && hm.substring(0,2).toInt() <= 23) key to hm else null
                                 }.toMap()

@@ -48,6 +48,7 @@ class MainActivity : Activity() {
         }
 
         PrayerClock.fetchAndSchedule(this) { if(it && currentPage == "home") showHome() }
+        AliebaUpdateChecker.check(this)
         if (intent?.getBooleanExtra("open_news",false)==true) showNews() else showHome()
         // Users upgrading from V12 have already finished the older three-step setup.
         if(setup.getBoolean("notifications",false)) window.decorView.post { if(!isFinishing) showFirstPermissionGuide() }
@@ -566,117 +567,97 @@ class MainActivity : Activity() {
         if(bold) typeface=Typeface.DEFAULT_BOLD
     }
     private fun home(): View {
+        val t=PrayerClock.times(this)
         val nowText=java.text.SimpleDateFormat("HH:mm",java.util.Locale.US).format(java.util.Date())
-        val schedule=PrayerClock.times(this)
-        val rising=schedule["sunrise"] ?: "06:00"
-        val setting=schedule["sunset"] ?: "19:00"
-        val night=nowText < rising || nowText >= setting
-        val root=FrameLayout(this).apply { setBackgroundColor(Color.WHITE) }
-        val scroll=ScrollView(this).apply { isFillViewport=true;clipToPadding=false;setPadding(0,0,0,dp(94)) }
-        val body=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
-        val displayHeight=resources.displayMetrics.heightPixels
-        val heroHeight=(displayHeight*0.45f).toInt().coerceIn(dp(310),dp(450))
+        val dawn=t["sunrise"] ?: "06:00"
+        val dusk=t["sunset"] ?: "19:00"
+        val night=nowText < dawn || nowText >= dusk
+        val root=FrameLayout(this).apply { background=AliebaPatternDrawable(resources.displayMetrics.density) }
+        val scroll=ScrollView(this).apply {isFillViewport=true;clipToPadding=false;setPadding(0,0,0,dp(95))}
+        val body=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL}
+        val heroHeight=(resources.displayMetrics.heightPixels * .51f).toInt().coerceIn(dp(390),dp(540))
         val hero=FrameLayout(this)
-        // Reuse the original mosque photograph; apply a night overlay after sunset.
-        hero.setBackgroundColor(if(night) 0xff07182a.toInt() else 0xff67bde4.toInt())
-        // FIT_CENTER leaves the full original mosque photograph visible; no portrait zoom.
-        val mosque=ImageView(this).apply {
-            setImageResource(R.drawable.mosque_bg)
-            scaleType=ImageView.ScaleType.FIT_CENTER
-            if(night) {
-                val cm=android.graphics.ColorMatrix(floatArrayOf(
-                    .30f,0f,0f,0f,0f,
-                    0f,.34f,0f,0f,0f,
-                    0f,0f,.52f,0f,0f,
-                    0f,0f,0f,1f,0f
-                ))
-                colorFilter=android.graphics.ColorMatrixColorFilter(cm)
-            }
-        }
-        hero.addView(mosque,FrameLayout.LayoutParams(-1,dp(235),Gravity.BOTTOM))
-        if(night) {
-            hero.addView(MosqueNightLights(this),FrameLayout.LayoutParams(-1,dp(235),Gravity.BOTTOM))
-        } else hero.addView(View(this).apply {background=GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,intArrayOf(0x330d3544,0x08000000,0x7a081714))},FrameLayout.LayoutParams(-1,-1))
-        val top=LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL;orientation=LinearLayout.HORIZONTAL;setPadding(dp(16),dp(12),dp(16),0)}
-        top.addView(label("☪  Alieba",21f,Color.WHITE,true),LinearLayout.LayoutParams(0,dp(48),1f))
-        val avatar=ImageView(this).apply {setImageResource(R.drawable.ic_profile);setColorFilter(Color.WHITE);background=tileBg(0x77000000,30);setPadding(dp(11),dp(11),dp(11),dp(11));setOnClickListener {showProfile()} }
-        top.addView(avatar,LinearLayout.LayoutParams(dp(44),dp(44)))
-        hero.addView(top,FrameLayout.LayoutParams(-1,dp(65),Gravity.TOP))
-        val quote=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(10),0,dp(10),0) }
-        quote.addView(label(if(night) "Həyatını Allahın rəngi ilə boya" else "Hər gün Allaha daha yaxın",24f,Color.WHITE),LinearLayout.LayoutParams(-1,-2))
-        quote.addView(label(if(night) "“Həqiqətən, Allah qəlbləri zikrlə rahatladır.”" else "“Allah zikr edənləri sevir.”",12f,Color.WHITE),LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(7)})
-        hero.addView(quote,FrameLayout.LayoutParams(-1,dp(100),Gravity.TOP).apply {topMargin=dp(90)})
-        val date=label(java.text.SimpleDateFormat("d MMMM, EEEE",java.util.Locale.forLanguageTag("az")).format(java.util.Date()),13f,Color.WHITE,true).apply {background=tileBg(0x99091212.toInt(),13);setPadding(dp(12),dp(4),dp(12),dp(4))}
-        hero.addView(date,FrameLayout.LayoutParams(-2,dp(37),Gravity.END or Gravity.CENTER_VERTICAL).apply {rightMargin=dp(12);topMargin=dp(45)})
-        hero.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(83),Gravity.BOTTOM).apply {bottomMargin=dp(5)})
+        hero.addView(MosqueSceneView(this,night),FrameLayout.LayoutParams(-1,-1))
+        val top=LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL;orientation=LinearLayout.HORIZONTAL;setPadding(dp(17),dp(8),dp(17),0)}
+        val mark=label("☪  Alieba App",19f,Color.WHITE,true).apply {gravity=Gravity.START or Gravity.CENTER_VERTICAL;setShadowLayer(3f,0f,2f,0x77000000)}
+        top.addView(mark,LinearLayout.LayoutParams(0,dp(48),1f))
+        val avatar=ImageView(this).apply {setImageResource(R.drawable.ic_profile);setColorFilter(Color.WHITE);background=tileBg(0x880c3034.toInt(),30);setPadding(dp(11),dp(11),dp(11),dp(11));setOnClickListener {showProfile()} }
+        top.addView(avatar,LinearLayout.LayoutParams(dp(46),dp(46)))
+        hero.addView(top,FrameLayout.LayoutParams(-1,dp(66),Gravity.TOP))
+        val quote=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(16),0,dp(16),0)}
+        quote.addView(label(if(night) "Həyatını Allahın rəngi ilə boya" else "Hər gün Allaha daha yaxın",23f,Color.WHITE).apply {setShadowLayer(4f,0f,2f,0x88000000)},LinearLayout.LayoutParams(-1,-2))
+        quote.addView(label(if(night) "“Qəlblər Allahı zikr etməklə rahatlıq tapır.”" else "“Allah zikr edənləri sevir.”",12f,Color.WHITE).apply {setShadowLayer(3f,0f,2f,0x88000000)},LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(8)})
+        hero.addView(quote,FrameLayout.LayoutParams(-1,dp(112),Gravity.TOP).apply {topMargin=dp(81)})
+        val date=label(java.text.SimpleDateFormat("d MMMM, EEEE",java.util.Locale.forLanguageTag("az")).format(java.util.Date()),13f,Color.WHITE,true).apply {background=tileBg(0xa0103334.toInt(),15);setPadding(dp(11),dp(4),dp(11),dp(4))}
+        hero.addView(date,FrameLayout.LayoutParams(-2,dp(38),Gravity.END or Gravity.BOTTOM).apply {rightMargin=dp(12);bottomMargin=dp(133)})
+        // S-shaped white boundary. Timings float ABOVE the boundary like the reference.
+        hero.addView(View(this).apply {background=HeroWaveDrawable(0xfff7faf7.toInt(),dp(23).toFloat())},FrameLayout.LayoutParams(-1,dp(39),Gravity.BOTTOM))
+        hero.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(94),Gravity.BOTTOM).apply {bottomMargin=dp(27)})
         body.addView(hero,LinearLayout.LayoutParams(-1,heroHeight))
         val sections=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL
-            setBackgroundColor(Color.WHITE)
-            setPadding(dp(8),dp(10),dp(8),dp(12))
+            background=AliebaPatternDrawable(resources.displayMetrics.density)
+            setPadding(dp(11),dp(9),dp(11),dp(18))
         }
         val icons=android.widget.GridLayout(this).apply {
             columnCount=3
             alignmentMode=android.widget.GridLayout.ALIGN_BOUNDS
             useDefaultMargins=false
-            setPadding(dp(4),dp(8),dp(4),dp(8))
+            setPadding(dp(3),dp(5),dp(3),dp(10))
         }
-        val entries=listOf(Triple("Quran",R.drawable.ic_quran,0xff16b3a2.toInt()),Triple("Məfatih",R.drawable.ic_dua,0xfff58a50.toInt()),Triple("Əhkam",R.drawable.ic_rules,0xff00a5d2.toInt()),Triple("Yeniliklər",R.drawable.ic_calendar,0xffdc449b.toInt()),Triple("Mərsiyələr",R.drawable.ic_audio,0xffd53644.toInt()),Triple("Hədislər",R.drawable.ic_hadith,0xff2c9a50.toInt()),Triple("Kitabxana",R.drawable.ic_library,0xff3257cc.toInt()),Triple("Ayarlar",R.drawable.ic_settings,0xff8a64b7.toInt()))
+        val entries=listOf(
+            Triple("Quran",R.drawable.ic_quran,0xff16b3a2.toInt()),
+            Triple("Məfatih",R.drawable.ic_dua,0xffef8856.toInt()),
+            Triple("Əhkam",R.drawable.ic_rules,0xff00a5c8.toInt()),
+            Triple("Yeniliklər",R.drawable.ic_calendar,0xffdc449b.toInt()),
+            Triple("Mərsiyələr",R.drawable.ic_audio,0xffc74051.toInt()),
+            Triple("Hədislər",R.drawable.ic_hadith,0xff2c9a50.toInt()),
+            Triple("Kitabxana",R.drawable.ic_library,0xff3257cc.toInt()),
+            Triple("Yadda saxla",R.drawable.ic_heart,0xff8a64b7.toInt()),
+            Triple("Ayarlar",R.drawable.ic_settings,0xff528d71.toInt())
+        )
         entries.forEach { (title,icon,color) ->
             val cell=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER}
-            cell.addView(ImageView(this).apply {setImageResource(icon);setColorFilter(Color.WHITE);background=tileBg(color,20);setPadding(dp(16),dp(16),dp(16),dp(16));elevation=dp(2).toFloat()},LinearLayout.LayoutParams(dp(67),dp(67)))
-            cell.addView(label(title,12f,ink),LinearLayout.LayoutParams(-1,dp(30)))
-            cell.setOnClickListener { when(title) {
-                "Ayarlar"->showSettings();"Yeniliklər"->showNews()
-                else->openWebsiteSection(title)
-            } }
+            cell.addView(ImageView(this).apply {setImageResource(icon);setColorFilter(Color.WHITE);background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(color,blend(color,Color.WHITE,.12f))).apply {cornerRadius=dp(20).toFloat();setStroke(dp(1),0x33ffffff)};setPadding(dp(17),dp(17),dp(17),dp(17));elevation=dp(3).toFloat()},LinearLayout.LayoutParams(dp(70),dp(70)))
+            cell.addView(label(title,12f,ink),LinearLayout.LayoutParams(-1,dp(32)))
+            cell.setOnClickListener {when(title) {"Ayarlar"->showSettings();"Yeniliklər"->showNews();else->openWebsiteSection(title)}}
             icons.addView(cell,android.widget.GridLayout.LayoutParams().apply {
-                width=0
-                height=dp(114)
+                width=0;height=dp(118)
                 columnSpec=android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED,1f)
-                setMargins(dp(2),dp(5),dp(2),dp(5))
+                setMargins(dp(1),dp(4),dp(1),dp(4))
             })
         }
         sections.addView(icons,LinearLayout.LayoutParams(-1,-2));body.addView(sections)
         scroll.addView(body);root.addView(scroll,FrameLayout.LayoutParams(-1,-1))
-        root.addView(bottomWave(),FrameLayout.LayoutParams(-1,dp(91),Gravity.BOTTOM))
+        root.addView(bottomWave(),FrameLayout.LayoutParams(-1,dp(93),Gravity.BOTTOM))
         return root
     }
-    private fun prayerStrip(): View {
+    private fun blend(a:Int,b:Int,f:Float):Int = Color.rgb(
+        (Color.red(a)*(1-f)+Color.red(b)*f).toInt(),
+        (Color.green(a)*(1-f)+Color.green(b)*f).toInt(),
+        (Color.blue(a)*(1-f)+Color.blue(b)*f).toInt()
+    )
+    private fun prayerStrip():View {
         val t=PrayerClock.times(this)
-        val row=LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL;orientation=LinearLayout.HORIZONTAL;setPadding(dp(3),dp(3),dp(3),dp(4))}
+        val active=PrayerClock.activeKey(this)
+        val row=LinearLayout(this).apply {gravity=Gravity.BOTTOM;orientation=LinearLayout.HORIZONTAL;setPadding(dp(4),dp(4),dp(4),dp(6))}
         for(i in PrayerClock.keys.indices) {
+            val key=PrayerClock.keys[i]
             val name=PrayerClock.displayNames[i]
-            val time=t[PrayerClock.keys[i]]?:"--:--"
-            val item=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL;background=tileBg(0xb4000000.toInt(),12);setOnClickListener {prayerSettings()} }
-            item.addView(label(name,10f,Color.WHITE),LinearLayout.LayoutParams(-1,dp(22)))
-            item.addView(label(time,11f,if(time=="--:--") 0xfff4aa99.toInt() else Color.WHITE,true),LinearLayout.LayoutParams(-1,dp(22)))
-            row.addView(item,LinearLayout.LayoutParams(0,dp(63),1f).apply {setMargins(dp(2),0,dp(2),0)})
+            val time=t[key] ?: "--:--"
+            val selected=active==key && time!="--:--"
+            val background=GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,intArrayOf(if(selected)0xed183c36.toInt() else 0xa20b2429.toInt(),if(selected)0xe8234c42.toInt() else 0xb509171d.toInt())).apply {
+                cornerRadius=dp(13).toFloat()
+                if(selected)setStroke(dp(2),0xffedcc78.toInt()) else setStroke(dp(1),0x33ffffff)
+            }
+            val card=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL;this.background=background;elevation=if(selected)dp(7).toFloat() else dp(1).toFloat();setOnClickListener{prayerSettings()} }
+            card.addView(label(name,8.5f,if(selected)0xffffe8a3.toInt() else Color.WHITE,selected).apply {setLines(2);setShadowLayer(if(selected)5f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(32)))
+            card.addView(label(time,11f,if(selected)0xffffe09b.toInt() else Color.WHITE,true).apply {setShadowLayer(if(selected)6f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(23)))
+            row.addView(card,LinearLayout.LayoutParams(0,if(selected)dp(80) else dp(72),1f).apply {setMargins(dp(2),0,dp(2),0)})
         }
         return row
     }
-    private fun bottomWave(): View {
-        val nav=LinearLayout(this).apply {
-            gravity=Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-            orientation=LinearLayout.HORIZONTAL
-            background=BottomWaveDrawable(Color.WHITE,dp(23).toFloat())
-            elevation=dp(9).toFloat()
-            setPadding(dp(5),dp(16),dp(5),dp(3))
-        }
-        fun add(title:String,icon:Int,action:()->Unit){
-            val b=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL}
-            b.addView(ImageView(this).apply {setImageResource(icon);setColorFilter(if(title=="Ana səhifə") 0xff255fd2.toInt() else ink)},LinearLayout.LayoutParams(dp(24),dp(24)))
-            b.addView(label(title,10f,ink),LinearLayout.LayoutParams(-1,dp(20)))
-            b.setOnClickListener {action()}; nav.addView(b,LinearLayout.LayoutParams(0,-1,1f))
-        }
-        add("Ana səhifə",R.drawable.ic_home){showHome()}
-        add("Yadda saxla",R.drawable.ic_heart){openWebsiteSection("Yadda saxla")}
-        val center=ImageView(this).apply {setImageResource(R.drawable.ic_notification_mosque);scaleType=ImageView.ScaleType.CENTER_INSIDE;setPadding(dp(13),dp(13),dp(13),dp(13));background=tileBg(0xff1a58c8.toInt(),44);clipToOutline=true;setOnClickListener {showHome()} }
-        nav.addView(center,LinearLayout.LayoutParams(dp(59),dp(59)).apply {setMargins(dp(4),-dp(5),dp(4),dp(4))})
-        add("Sevimlilər",R.drawable.ic_heart){openWebsiteSection("Yadda saxla")}
-        add("Daha çox",R.drawable.ic_settings){moreOptions()}
-        return nav
-    }
+    private fun bottomWave():View = AliebaBottomNav.make(this,"home")
     // All reading/news sections are native Android views, not a WebView.
     private fun openWebsiteSection(section:String) {
         val slug=when(section) {
@@ -698,61 +679,54 @@ class MainActivity : Activity() {
     }
 
     private fun signInWithGoogle() {
-        val credentialManager = CredentialManager.create(this)
-
-        val googleIdOption = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(false)
-            .setServerClientId(getString(R.string.default_web_client_id))
-            .setAutoSelectEnabled(false)
-            .build()
-
-        val request = GetCredentialRequest.Builder()
-            .addCredentialOption(googleIdOption)
-            .build()
-
+        val webClientId=getString(R.string.default_web_client_id)
+        if(webClientId.isBlank()){
+            Toast.makeText(this,"Google Client ID quraşdırılmayıb",Toast.LENGTH_LONG).show();return
+        }
+        val request=GetCredentialRequest.Builder().addCredentialOption(
+            GetGoogleIdOption.Builder()
+                .setFilterByAuthorizedAccounts(false)
+                .setServerClientId(webClientId)
+                .setAutoSelectEnabled(false)
+                .build()
+        ).build()
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                val result = credentialManager.getCredential(
-                    context = this@MainActivity,
-                    request = request
-                )
-
-                val googleCredential = GoogleIdTokenCredential.createFrom(
-                    result.credential.data
-                )
-
-                val firebaseCredential = GoogleAuthProvider.getCredential(
-                    googleCredential.idToken,
-                    null
-                )
-
-                FirebaseAuth.getInstance()
-                    .signInWithCredential(firebaseCredential)
-                    .addOnSuccessListener {
-                        Toast.makeText(
-                            this@MainActivity,
-                            "Google hesabına giriş edildi",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        showProfile()
-                    }
-                    .addOnFailureListener {
-                        Toast.makeText(
-                            this@MainActivity,
-                            "Google giriş alınmadı: ${it.localizedMessage}",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
+                val result=CredentialManager.create(this@MainActivity).getCredential(
+                    context=this@MainActivity,request=request)
+                val token=GoogleIdTokenCredential.createFrom(result.credential.data).idToken
+                firebaseGoogleLogin(token)
+            } catch (_: androidx.credentials.exceptions.GetCredentialCancellationException) {
+                // The user dismissed account selection.
             } catch (e: Exception) {
-                Toast.makeText(
-                    this@MainActivity,
-                    "Google giriş alınmadı: ${e.localizedMessage}",
-                    Toast.LENGTH_LONG
-                ).show()
+                // Some Android/Google Play Services versions have no Credential Manager
+                // credentials even when a Google account is on the device. Offer the
+                // classic account chooser instead of failing with 'No credentials available'.
+                legacyGoogleChooser(webClientId)
             }
         }
     }
-
+    private fun legacyGoogleChooser(webClientId:String){
+        try {
+            val options=com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
+                com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(webClientId).requestEmail().build()
+            val client=com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(this,options)
+            startActivityForResult(client.signInIntent,640)
+        }catch(e:Exception){
+            Toast.makeText(this,"Google hesabı seçimi açıla bilmədi: ${e.localizedMessage}",Toast.LENGTH_LONG).show()
+        }
+    }
+    private fun firebaseGoogleLogin(token:String){
+        FirebaseAuth.getInstance().signInWithCredential(
+            GoogleAuthProvider.getCredential(token,null)
+        ).addOnSuccessListener {
+            Toast.makeText(this,"Google hesabına giriş edildi",Toast.LENGTH_SHORT).show()
+            showProfile()
+        }.addOnFailureListener {error ->
+            Toast.makeText(this,"Google giriş xətası: ${error.localizedMessage}. Firebase Android SHA-1/SHA-256 imzalarını yoxlayın.",Toast.LENGTH_LONG).show()
+        }
+    }
     private fun showProfile() {
         val user=FirebaseAuth.getInstance().currentUser
         val sheet=com.google.android.material.bottomsheet.BottomSheetDialog(this)
@@ -869,6 +843,15 @@ class MainActivity : Activity() {
     }
     override fun onActivityResult(requestCode:Int,resultCode:Int,data:Intent?){
         super.onActivityResult(requestCode,resultCode,data)
+        if(requestCode==640 && resultCode==RESULT_OK){
+            try {
+                val account=com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(data)
+                    .getResult(com.google.android.gms.common.api.ApiException::class.java)
+                val token=account.idToken
+                if(token.isNullOrBlank()) Toast.makeText(this,"Google ID token alınmadı. Firebase SHA-1 imzasını yoxlayın.",Toast.LENGTH_LONG).show()
+                else firebaseGoogleLogin(token)
+            }catch(e:Exception){Toast.makeText(this,"Google hesabı seçilmədi: ${e.localizedMessage}",Toast.LENGTH_LONG).show()}
+        }
         if(requestCode==98 && resultCode==RESULT_OK && data?.data!=null) {
             val uri=data.data!!
             try{contentResolver.takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION)}catch(_:Exception){}

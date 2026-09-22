@@ -30,7 +30,7 @@ class NativeSettingsActivity: Activity() {
   draw()
  }
  private fun draw(){
-  val scroll=ScrollView(this).apply{setBackgroundColor(0xfff7f8fa.toInt())}
+  val scroll=ScrollView(this).apply{background=AliebaPatternDrawable(resources.displayMetrics.density)}
   val body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(18),dp(20),dp(18),dp(30))};scroll.addView(body)
   val top=LinearLayout(this).apply{gravity=Gravity.CENTER_VERTICAL}
   top.addView(text("‹",35f).apply{gravity=Gravity.CENTER;setOnClickListener{finish()}},LinearLayout.LayoutParams(dp(45),dp(52)))
@@ -99,7 +99,10 @@ class NativeSettingsActivity: Activity() {
     }.start()
    }.setNegativeButton("Ləğv et",null).show()
   }
-  setContentView(scroll)
+  val screen=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;background=AliebaPatternDrawable(resources.displayMetrics.density)}
+  screen.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
+  screen.addView(AliebaBottomNav.make(this,"settings"),LinearLayout.LayoutParams(-1,dp(93)))
+  setContentView(screen)
  }
  @Deprecated("File chooser compatibility")
  override fun onActivityResult(requestCode:Int,resultCode:Int,data:Intent?){super.onActivityResult(requestCode,resultCode,data)

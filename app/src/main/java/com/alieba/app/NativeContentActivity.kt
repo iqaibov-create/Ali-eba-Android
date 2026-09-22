@@ -55,16 +55,17 @@ class NativeContentActivity:Activity() {
     }
     private fun titleFor(s:String)=when(s){"quran"->"Quran";"mafatih"->"Məfatih";"ahkam"->"Əhkam";"hadis"->"Hədislər";"mersiye"->"Mərsiyələr";"kitabxana"->"Kitabxana";"news"->"Yeniliklər";"saved"->"Yadda saxlananlar";else->"Alieba"}
     private fun baseScreen(title:String){
-        val root=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setBackgroundColor(bg)}
+        val root=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;background=AliebaPatternDrawable(resources.displayMetrics.density)}
         val bar=LinearLayout(this).apply{gravity=Gravity.CENTER_VERTICAL;setPadding(dp(18),dp(10),dp(18),dp(10));setBackgroundColor(Color.WHITE)}
         bar.addView(text("‹",36f,ink).apply{gravity=Gravity.CENTER;setOnClickListener{finish()}},LinearLayout.LayoutParams(dp(44),dp(48)))
         heading=text(title,23f,ink,true).apply{gravity=Gravity.CENTER_VERTICAL;setPadding(dp(10),0,0,0)}
         bar.addView(heading,LinearLayout.LayoutParams(0,dp(50),1f))
         bar.addView(text("☪",25f,gold),LinearLayout.LayoutParams(-2,-2))
         root.addView(bar,LinearLayout.LayoutParams(-1,-2))
-        val scroll=ScrollView(this).apply{isFillViewport=true;clipToPadding=false}
+        val scroll=ScrollView(this).apply{isFillViewport=true;clipToPadding=false;background=AliebaPatternDrawable(resources.displayMetrics.density)}
         body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(17),dp(16),dp(17),dp(30))}
         scroll.addView(body);root.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
+        root.addView(AliebaBottomNav.make(this,section),LinearLayout.LayoutParams(-1,dp(93)))
         setContentView(root)
     }
     private fun heading(t:String){body.addView(text(t,26f,ink,true),LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(9)})}
