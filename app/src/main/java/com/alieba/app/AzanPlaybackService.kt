@@ -27,7 +27,8 @@ class AzanPlaybackService: Service() {
             .setSmallIcon(R.drawable.ic_notification_mosque).setContentTitle("Alieba • $name vaxtıdır")
             .setContentText("Azanı dayandırmaq üçün toxunun")
             .setPriority(NotificationCompat.PRIORITY_HIGH).setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setContentIntent(open).addAction(0,"Dayandır",close).setOngoing(true).build()
+            .setContentIntent(open).addAction(0,"Dayandır",close)
+            .setDeleteIntent(close).setOngoing(false).build()
         startForeground(712,note)
         player?.release()
         try {

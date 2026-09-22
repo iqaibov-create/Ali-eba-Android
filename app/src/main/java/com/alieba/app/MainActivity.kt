@@ -28,11 +28,8 @@ class MainActivity : Activity() {
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
 
-        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(
-            window,
-            false
-        )
-        window.statusBarColor = Color.TRANSPARENT
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, true)
+        window.statusBarColor = 0xff102e39.toInt()
         if(getSharedPreferences("alieba_setup",MODE_PRIVATE).getBoolean("news_notifications",true)) {
             com.google.firebase.messaging.FirebaseMessaging.getInstance().subscribeToTopic("alieba_news")
         }
@@ -63,14 +60,9 @@ class MainActivity : Activity() {
 
         // Edge-to-edge screens must reserve BOTH the phone's status-bar and
         // gesture/navigation areas; do not place Alieba icons beneath either.
-        window.statusBarColor = Color.TRANSPARENT
+        window.statusBarColor = 0xff102e39.toInt()
         window.navigationBarColor = Color.WHITE
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-        ViewCompat.setOnApplyWindowInsetsListener(v) { view, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(0, bars.top, 0, bars.bottom)
-            insets
-        }
     }
 
     override fun onRequestPermissionsResult(
@@ -162,6 +154,9 @@ class MainActivity : Activity() {
                     Toast.LENGTH_SHORT
                 ).show()
 
+                PrayerClock.fetchAndSchedule(this@MainActivity) { ready ->
+                    if(ready && currentPage=="home") showHome()
+                }
                 setContentView(notificationSetup())
             } else {
                 Toast.makeText(
@@ -601,7 +596,7 @@ root.addView(TextView(this).apply {
         }
         val scroll=ScrollView(this).apply {isFillViewport=true;clipToPadding=false;setPadding(0,0,0,dp(108))}
         val body=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL}
-        val heroHeight=(resources.displayMetrics.heightPixels * .48f).toInt().coerceIn(dp(345),dp(490))
+        val heroHeight=(resources.displayMetrics.heightPixels * .46f).toInt().coerceIn(dp(333),dp(445))
         val hero=FrameLayout(this)
         hero.addView(MosqueSceneView(this,night),FrameLayout.LayoutParams(-1,-1))
         val top=LinearLayout(this).apply {
@@ -626,20 +621,20 @@ root.addView(TextView(this).apply {
         val quote=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER
             setPadding(dp(18),dp(8),dp(18),dp(8))
-            background=tileBg(if(night)0x6005202c else 0x9beaf7f4.toInt(),19)
+            // Text is placed directly over the mosque/sky; no opaque text box.
         }
         quote.addView(label(if(night) "Həyatını Allahın rəngi ilə boya" else "Hər gün Allaha daha yaxın",
-            20f,if(night)Color.WHITE else 0xff163f3c.toInt(),true),LinearLayout.LayoutParams(-1,-2))
+            20f,Color.WHITE,true).apply {setShadowLayer(5f,0f,2f,0xaa082b34.toInt())},LinearLayout.LayoutParams(-1,-2))
         quote.addView(label(if(night) "Qəlblər Allahı zikr etməklə rahatlıq tapır. · Rəd, 28" else "Allah zikr edənləri sevir. · Bəqərə, 152",
-            11f,if(night)0xfff5dfae.toInt() else 0xff285c50.toInt()),LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(5)})
+            11f,0xfff9f3e5.toInt()).apply {setShadowLayer(4f,0f,1f,0xaa082b34.toInt())},LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(5)})
         hero.addView(quote,FrameLayout.LayoutParams(-1,dp(105),Gravity.TOP).apply {
             topMargin=dp(77);leftMargin=dp(14);rightMargin=dp(14)
         })
-        val date=label(java.text.SimpleDateFormat("d MMMM, EEEE",java.util.Locale.forLanguageTag("az")).format(java.util.Date()),13f,Color.WHITE,true).apply {background=tileBg(0xa0103334.toInt(),15);setPadding(dp(11),dp(4),dp(11),dp(4))}
-        hero.addView(date,FrameLayout.LayoutParams(-2,dp(38),Gravity.END or Gravity.BOTTOM).apply {rightMargin=dp(12);bottomMargin=dp(121)})
+        val date=label(java.text.SimpleDateFormat("d MMMM, EEEE",java.util.Locale.forLanguageTag("az")).format(java.util.Date()),12f,Color.WHITE,true).apply {setShadowLayer(4f,0f,2f,0xbb001c20.toInt());setPadding(dp(8),dp(3),dp(8),dp(3))}
+        hero.addView(date,FrameLayout.LayoutParams(-2,dp(30),Gravity.END or Gravity.BOTTOM).apply {rightMargin=dp(12);bottomMargin=dp(94)})
         // S-shaped white boundary. Timings float ABOVE the boundary like the reference.
         hero.addView(View(this).apply {background=HeroWaveDrawable(0xfff7faf7.toInt(),dp(23).toFloat())},FrameLayout.LayoutParams(-1,dp(39),Gravity.BOTTOM))
-        hero.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(88),Gravity.BOTTOM).apply {bottomMargin=dp(29)})
+        hero.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(73),Gravity.BOTTOM).apply {bottomMargin=dp(23)})
         body.addView(hero,LinearLayout.LayoutParams(-1,heroHeight))
         val sections=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL
@@ -660,14 +655,16 @@ root.addView(TextView(this).apply {
             Triple("Mərsiyələr",R.drawable.ic_audio,0xffc74051.toInt()),
             Triple("Hədislər",R.drawable.ic_hadith,0xff2c9a50.toInt()),
             Triple("Kitabxana",R.drawable.ic_library,0xff3257cc.toInt()),
+            Triple("Məsləhət",R.drawable.ic_hadith,0xffb69038.toInt()),
+            Triple("Kömək et",R.drawable.ic_heart,0xffb77b3f.toInt()),
             Triple("Yadda saxla",R.drawable.ic_heart,0xff8a64b7.toInt()),
             Triple("Ayarlar",R.drawable.ic_settings,0xff528d71.toInt())
         )
         entries.forEach { (title,icon,color) ->
             val cell=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER}
             cell.addView(ImageView(this).apply {setImageResource(icon);setColorFilter(Color.WHITE);background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(color,blend(color,Color.WHITE,.12f))).apply {cornerRadius=dp(20).toFloat();setStroke(dp(1),0x33ffffff)};setPadding(dp(17),dp(17),dp(17),dp(17));elevation=dp(3).toFloat()},LinearLayout.LayoutParams(dp(70),dp(70)))
-            cell.addView(label(title,12f,ink),LinearLayout.LayoutParams(-1,dp(32)))
-            cell.setOnClickListener {when(title) {"Ayarlar"->showSettings();"Yeniliklər"->showNews();else->openWebsiteSection(title)}}
+            cell.addView(label(title,12f,ink),LinearLayout.LayoutParams(-1,dp(25)))
+            cell.setOnClickListener {when(title) {"Ayarlar"->showSettings();"Yeniliklər"->showNews();"Məsləhət"->startActivity(Intent(this,NativeAdviceActivity::class.java));"Kömək et"->startActivity(Intent(this,NativeDonateActivity::class.java));else->openWebsiteSection(title)}}
             icons.addView(cell,android.widget.GridLayout.LayoutParams().apply {
                 width=0;height=dp(118)
                 columnSpec=android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED,1f)
@@ -687,20 +684,20 @@ root.addView(TextView(this).apply {
     private fun prayerStrip():View {
         val t=PrayerClock.times(this)
         val active=PrayerClock.activeKey(this)
-        val row=LinearLayout(this).apply {gravity=Gravity.BOTTOM;orientation=LinearLayout.HORIZONTAL;setPadding(dp(4),dp(4),dp(4),dp(6))}
+        val row=LinearLayout(this).apply {gravity=Gravity.BOTTOM;orientation=LinearLayout.HORIZONTAL;setPadding(dp(3),dp(5),dp(3),dp(2))}
         for(i in PrayerClock.keys.indices) {
             val key=PrayerClock.keys[i]
             val name=PrayerClock.displayNames[i]
             val time=t[key] ?: "--:--"
             val selected=active==key && time!="--:--"
             val background=GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,intArrayOf(if(selected)0xed183c36.toInt() else 0xa20b2429.toInt(),if(selected)0xe8234c42.toInt() else 0xb509171d.toInt())).apply {
-                cornerRadius=dp(13).toFloat()
+                cornerRadius=dp(11).toFloat()
                 if(selected)setStroke(dp(2),0xffedcc78.toInt()) else setStroke(dp(1),0x33ffffff)
             }
             val card=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL;this.background=background;elevation=if(selected)dp(7).toFloat() else dp(1).toFloat();setOnClickListener{prayerSettings()} }
-            card.addView(label(name,8.5f,if(selected)0xffffe8a3.toInt() else Color.WHITE,selected).apply {setLines(2);setShadowLayer(if(selected)5f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(32)))
-            card.addView(label(time,11f,if(selected)0xffffe09b.toInt() else Color.WHITE,true).apply {setShadowLayer(if(selected)6f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(23)))
-            row.addView(card,LinearLayout.LayoutParams(0,if(selected)dp(80) else dp(72),1f).apply {setMargins(dp(2),0,dp(2),0)})
+            card.addView(label(name,8f,if(selected)0xffffe8a3.toInt() else Color.WHITE,selected).apply {setLines(2);setShadowLayer(if(selected)5f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(32)))
+            card.addView(label(time,10f,if(selected)0xffffe09b.toInt() else Color.WHITE,true).apply {setShadowLayer(if(selected)6f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(19)))
+            row.addView(card,LinearLayout.LayoutParams(0,if(selected)dp(66) else dp(59),1f).apply {setMargins(dp(1),0,dp(1),0)})
         }
         return row
     }

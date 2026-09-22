@@ -12,5 +12,5 @@ jobs:
       - run: gradle assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: Alieba-V14-native-debug-apk
+          name: Alieba-V16-native-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
