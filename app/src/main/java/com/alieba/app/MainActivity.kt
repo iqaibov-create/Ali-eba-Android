@@ -53,6 +53,10 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        // Keep both the original prayer refresh and the new APK installer resumption.
+        if (getSharedPreferences("alieba_setup", MODE_PRIVATE).getBoolean("completed", false)) {
+            PrayerClock.scheduleToday(this)
+        }
         AliebaUpdateChecker.resumePending(this)
     }
 
@@ -874,10 +878,6 @@ root.addView(TextView(this).apply {
                 .setPositiveButton("İcazəni aç") {_,_->startActivity(Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,android.net.Uri.parse("package:$packageName")))}
                 .setNegativeButton("Sonra",null).show()
         }
-    }
-    override fun onResume(){
-        super.onResume()
-        if(getSharedPreferences("alieba_setup",MODE_PRIVATE).getBoolean("completed",false)) PrayerClock.scheduleToday(this)
     }
     private fun prayerSettings() {
         val p=getSharedPreferences("alieba_setup",MODE_PRIVATE)
