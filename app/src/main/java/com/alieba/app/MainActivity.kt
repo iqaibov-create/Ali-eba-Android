@@ -40,7 +40,12 @@ class MainActivity : Activity() {
         )
 
         if (!setup.getBoolean("completed", false)) {
-            setContentView(firstSetup())
+            // Preserve the onboarding step if Android recreates the activity after a permission sheet.
+            when (setup.getString("setup_stage", "language")) {
+                "location" -> setContentView(locationSetup())
+                "notifications" -> setContentView(notificationSetup())
+                else -> setContentView(firstSetup())
+            }
             return
         }
 
@@ -111,14 +116,15 @@ class MainActivity : Activity() {
 
             42 -> {
                 val granted = grantResults.isNotEmpty() &&
-                    grantResults[0] ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-
-                getSharedPreferences("alieba_setup", MODE_PRIVATE)
-                    .edit()
-                    .putBoolean("notifications", granted)
-                    .apply()
-                if (granted) showFirstPermissionGuide()
+                    grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED
+                if (currentPage == "setup_notifications") {
+                    if (granted) completeFirstSetup(true)
+                    else {
+                        // Keep the permission page visible; never jump to Home on denial.
+                        setContentView(notificationSetup())
+                        Toast.makeText(this, "Bildiriş icazəsi verilmədi. İcazəni ayarlardan aça və ya bildirişləri söndürüb davam edə bilərsiniz.", Toast.LENGTH_LONG).show()
+                    }
+                }
             }
         }
     }
@@ -147,6 +153,7 @@ class MainActivity : Activity() {
             com.google.android.gms.location.Priority.PRIORITY_BALANCED_POWER_ACCURACY,
             token.token
         ).addOnSuccessListener { location ->
+            if (currentPage != "setup_location" || isFinishing) return@addOnSuccessListener
             if (location != null) {
                 getSharedPreferences(
                     "alieba_setup",
@@ -163,10 +170,8 @@ class MainActivity : Activity() {
                     Toast.LENGTH_SHORT
                 ).show()
 
-                PrayerClock.fetchAndSchedule(this@MainActivity) { ready ->
-                    if(ready && currentPage=="home") showHome()
-                }
-                setContentView(notificationSetup())
+                // Selecting a location is not permission to skip the Next button.
+                setContentView(locationSetup())
             } else {
                 Toast.makeText(
                     this,
@@ -177,6 +182,7 @@ class MainActivity : Activity() {
                 setContentView(locationSetup())
             }
         }.addOnFailureListener {
+            if (currentPage != "setup_location" || isFinishing) return@addOnFailureListener
             Toast.makeText(
                 this,
                 "Məkan müəyyən edilə bilmədi.",
@@ -188,6 +194,8 @@ class MainActivity : Activity() {
     }
 
     private fun firstSetup(): View {
+        currentPage = "setup_language"
+        getSharedPreferences("alieba_setup", MODE_PRIVATE).edit().putString("setup_stage", "language").apply()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
@@ -282,6 +290,8 @@ root.addView(TextView(this).apply {
     }
 
     private fun locationSetup(): View {
+        currentPage = "setup_location"
+        getSharedPreferences("alieba_setup", MODE_PRIVATE).edit().putString("setup_stage", "location").apply()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
@@ -341,11 +351,7 @@ root.addView(TextView(this).apply {
             }
 
             setOnClickListener {
-                getSharedPreferences("alieba_setup", MODE_PRIVATE)
-                    .edit()
-                    .putString("location_mode", "auto")
-                    .apply()
-
+                // Do not save an unconfirmed location or advance on this click.
                 if (Build.VERSION.SDK_INT >= 23 &&
                     checkSelfPermission(
                         android.Manifest.permission.ACCESS_FINE_LOCATION
@@ -371,6 +377,17 @@ root.addView(TextView(this).apply {
                 bottomMargin = dp(16)
             }
         )
+
+        val locationPrefs = getSharedPreferences("alieba_setup", MODE_PRIVATE)
+        val locationReady = locationPrefs.getString("latitude", null)?.toDoubleOrNull() != null &&
+            locationPrefs.getString("longitude", null)?.toDoubleOrNull() != null
+        root.addView(TextView(this).apply {
+            text = if (locationReady) "✓ Məkan seçildi. İrəli düyməsinə basın." else "Məkanı avtomatik və ya şəhər adı ilə seçin."
+            textSize = 14f
+            gravity = Gravity.CENTER
+            setTextColor(if (locationReady) green else ink)
+            setPadding(0, 0, 0, dp(14))
+        })
 
         val city = EditText(this).apply {
             hint = "Şəhər — məsələn: Marneuli"
@@ -416,6 +433,27 @@ root.addView(TextView(this).apply {
             }
         )
 
+        val next = TextView(this).apply {
+            text = "İrəli — Bildiriş ayarları"
+            textSize = 17f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            background = GradientDrawable().apply {
+                setColor(if (locationReady) green else 0xff9aaba5.toInt())
+                cornerRadius = dp(16).toFloat()
+            }
+            setOnClickListener {
+                val pref = getSharedPreferences("alieba_setup", MODE_PRIVATE)
+                if (pref.getString("latitude", null)?.toDoubleOrNull() == null ||
+                    pref.getString("longitude", null)?.toDoubleOrNull() == null) {
+                    Toast.makeText(this@MainActivity, "Əvvəl məkanınızı seçin.", Toast.LENGTH_SHORT).show()
+                } else {
+                    setContentView(notificationSetup())
+                }
+            }
+        }
+        root.addView(next, LinearLayout.LayoutParams(-1, dp(62)).apply { topMargin = dp(14) })
         return root
     }
 
@@ -436,7 +474,7 @@ root.addView(TextView(this).apply {
                         .putString("latitude", location.latitude.toString())
                         .putString("longitude", location.longitude.toString())
                         .apply()
-                    setContentView(notificationSetup())
+                    if (currentPage == "setup_location" && !isFinishing) setContentView(locationSetup())
                 }
             } catch (e: Exception) {
                 runOnUiThread {
@@ -447,6 +485,8 @@ root.addView(TextView(this).apply {
     }
 
     private fun notificationSetup(): View {
+        currentPage = "setup_notifications"
+        getSharedPreferences("alieba_setup", MODE_PRIVATE).edit().putString("setup_stage", "notifications").apply()
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
@@ -511,6 +551,20 @@ root.addView(TextView(this).apply {
             notifications,
             LinearLayout.LayoutParams(-1, dp(64))
         )
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            root.addView(TextView(this).apply {
+                text = "Bildiriş icazəsini telefon ayarlarında aç"
+                textSize = 14f
+                gravity = Gravity.CENTER
+                setTextColor(green)
+                setOnClickListener {
+                    startActivity(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName))
+                }
+            }, LinearLayout.LayoutParams(-1, dp(50)))
+        }
 
         root.addView(TextView(this).apply {
             text = "Sonradan Profil → Azan və namaz bildirişləri bölməsindən Fəcr, Zöhr, Əsr, Məğrib və İşa üçün ayrıca seçim edə bilərsiniz."
@@ -533,47 +587,14 @@ root.addView(TextView(this).apply {
 
             setOnClickListener {
                 val enabled = notifications.isChecked
-
-                listOf(
-                    "Fəcr",
-                    "Zöhr",
-                    "Əsr",
-                    "Məğrib",
-                    "İşa"
-                ).forEach { prayer ->
-                    AzanPrefs.setPrayerEnabled(
-                        this@MainActivity,
-                        prayer,
-                        enabled
-                    )
+                if (enabled && Build.VERSION.SDK_INT >= 33 &&
+                    checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+                        android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    // Wait for the user to accept or deny the Android dialog before leaving this page.
+                    requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 42)
+                } else {
+                    completeFirstSetup(enabled)
                 }
-
-                getSharedPreferences(
-                    "alieba_setup",
-                    MODE_PRIVATE
-                ).edit()
-                    .putBoolean("notifications", enabled)
-                    .putBoolean("completed", true)
-                    .apply()
-
-                if (
-                    enabled &&
-                    Build.VERSION.SDK_INT >= 33 &&
-                    checkSelfPermission(
-                        android.Manifest.permission.POST_NOTIFICATIONS
-                    ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-                ) {
-                    requestPermissions(
-                        arrayOf(
-                            android.Manifest.permission.POST_NOTIFICATIONS
-                        ),
-                        42
-                    )
-                }
-
-                PrayerClock.fetchAndSchedule(this@MainActivity)
-                showHome()
-                if(enabled) showFirstPermissionGuide()
             }
         }
 
@@ -584,7 +605,39 @@ root.addView(TextView(this).apply {
             }
         )
 
+        root.addView(TextView(this).apply {
+            text = "‹ Məkan seçiminə qayıt"
+            textSize = 14f
+            gravity = Gravity.CENTER
+            setTextColor(ink)
+            setOnClickListener { setContentView(locationSetup()) }
+        }, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(6) })
+
         return root
+    }
+
+    private fun completeFirstSetup(notificationsEnabled: Boolean) {
+        if (currentPage != "setup_notifications") return
+        val allowed = notificationsEnabled &&
+            (Build.VERSION.SDK_INT < 33 ||
+                checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED)
+        listOf("Fəcr", "Zöhr", "Əsr", "Məğrib", "İşa").forEach {
+            AzanPrefs.setPrayerEnabled(this, it, allowed)
+        }
+        getSharedPreferences("alieba_setup", MODE_PRIVATE).edit()
+            .putBoolean("notifications", allowed)
+            .putBoolean("completed", true)
+            .remove("setup_stage")
+            .apply()
+        showHome()
+        PrayerClock.fetchAndSchedule(this) { ready ->
+            if (ready && currentPage == "home" && !isFinishing) showHome()
+        }
+        AliebaUpdateChecker.check(this)
+        if (notificationsEnabled) window.decorView.post {
+            if (!isFinishing && currentPage == "home") showFirstPermissionGuide()
+        }
     }
 
     private val green=0xff0b4138.toInt()
