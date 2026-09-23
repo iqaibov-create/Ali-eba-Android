@@ -51,6 +51,11 @@ class MainActivity : Activity() {
         if(setup.getBoolean("notifications",false)) window.decorView.post { if(!isFinishing) showFirstPermissionGuide() }
     }
 
+    override fun onResume() {
+        super.onResume()
+        AliebaUpdateChecker.resumePending(this)
+    }
+
     override fun onNewIntent(i:Intent) {super.onNewIntent(i);setIntent(i);if(i.getBooleanExtra("open_news",false))showNews()}
 
     private fun showHome() {
@@ -618,17 +623,32 @@ root.addView(TextView(this).apply {
         }
         top.addView(avatar,LinearLayout.LayoutParams(dp(48),dp(48)))
         hero.addView(top,FrameLayout.LayoutParams(-1,dp(68),Gravity.TOP).apply {topMargin=dp(9)})
+        // A single native heading renders sharply on both day and night photos.
+        // Do not bake a second copy of the wording into the images.
         val quote=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER
-            setPadding(dp(18),dp(8),dp(18),dp(8))
-            // Text is placed directly over the mosque/sky; no opaque text box.
+            setPadding(dp(8),dp(2),dp(8),dp(2))
         }
-        quote.addView(label(if(night) "Həyatını Allahın rəngi ilə boya" else "Hər gün Allaha daha yaxın",
-            20f,Color.WHITE,true).apply {setShadowLayer(5f,0f,2f,0xaa082b34.toInt())},LinearLayout.LayoutParams(-1,-2))
-        quote.addView(label(if(night) "Qəlblər Allahı zikr etməklə rahatlıq tapır. · Rəd, 28" else "Allah zikr edənləri sevir. · Bəqərə, 152",
-            11f,0xfff9f3e5.toInt()).apply {setShadowLayer(4f,0f,1f,0xaa082b34.toInt())},LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(5)})
-        hero.addView(quote,FrameLayout.LayoutParams(-1,dp(105),Gravity.TOP).apply {
-            topMargin=dp(77);leftMargin=dp(14);rightMargin=dp(14)
+        val heading=label("Hər gün Allaha\ndaha yaxın",26f,Color.WHITE,true).apply {
+            typeface=Typeface.create("serif",Typeface.BOLD)
+            letterSpacing=.014f
+            setLineSpacing(dp(1).toFloat(),1.03f)
+            setShadowLayer(dp(3).toFloat(),0f,dp(2).toFloat(),0xcc092c3e.toInt())
+            includeFontPadding=false
+        }
+        quote.addView(heading,LinearLayout.LayoutParams(-1,-2))
+        val ornament=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.HORIZONTAL}
+        ornament.addView(View(this).apply {setBackgroundColor(0xfff4d99c.toInt())},LinearLayout.LayoutParams(dp(44),dp(1)))
+        ornament.addView(label("✦",13f,0xfff9e2a9.toInt(),true),LinearLayout.LayoutParams(dp(29),dp(19)))
+        ornament.addView(View(this).apply {setBackgroundColor(0xfff4d99c.toInt())},LinearLayout.LayoutParams(dp(44),dp(1)))
+        quote.addView(ornament,LinearLayout.LayoutParams(-1,dp(21)).apply {topMargin=dp(3)})
+        quote.addView(label("Allah zikr edənləri sevir. · Bəqərə, 152",
+            11f,0xfffff7e9.toInt()).apply {
+            typeface=Typeface.create("serif",Typeface.NORMAL)
+            setShadowLayer(dp(2).toFloat(),0f,dp(1).toFloat(),0xcc102a3d.toInt())
+        },LinearLayout.LayoutParams(-1,-2))
+        hero.addView(quote,FrameLayout.LayoutParams(-1,dp(122),Gravity.TOP).apply {
+            topMargin=dp(67);leftMargin=dp(12);rightMargin=dp(12)
         })
         val date=label(java.text.SimpleDateFormat("d MMMM, EEEE",java.util.Locale.forLanguageTag("az")).format(java.util.Date()),12f,Color.WHITE,true).apply {setShadowLayer(4f,0f,2f,0xbb001c20.toInt());setPadding(dp(8),dp(3),dp(8),dp(3))}
         hero.addView(date,FrameLayout.LayoutParams(-2,dp(30),Gravity.END or Gravity.BOTTOM).apply {rightMargin=dp(12);bottomMargin=dp(94)})

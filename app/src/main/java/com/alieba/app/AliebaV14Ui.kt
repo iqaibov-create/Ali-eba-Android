@@ -32,8 +32,9 @@ class MosqueSceneView(c:Context,private val night:Boolean):View(c){
             // Portrait image: crop a controlled vertical window so the mosque fits naturally.
             val viewRatio=w/h
             val cropH=(photo.width / viewRatio).toInt().coerceAtMost(photo.height)
-            val preferredTop=((photo.height-cropH) * (if(night)0.36f else 0.34f)).toInt()
-            val srcTop=preferredTop.coerceIn(0, photo.height-cropH)
+            // Align the crop to the BOTTOM: the mosque is in the lower part of both photos.
+            // Starting from the sky hides the building behind the prayer time cards.
+            val srcTop=(photo.height-cropH).coerceAtLeast(0)
             val src=Rect(0,srcTop,photo.width,srcTop+cropH)
             canvas.drawBitmap(photo,src,RectF(0f,0f,w,h),p)
         } else {
