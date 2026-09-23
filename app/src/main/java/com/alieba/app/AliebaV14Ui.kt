@@ -19,7 +19,7 @@ class MosqueSceneView(c:Context,private val night:Boolean):View(c){
     private val stars=(0 until 30).map { i ->
         val x=((i*73+19)%97+1)/100f
         val y=((i*47+11)%58+3)/100f
-        i*0.91f
+        x to y
     }
     override fun onDraw(canvas:Canvas){
         val w=width.toFloat();val h=height.toFloat()
