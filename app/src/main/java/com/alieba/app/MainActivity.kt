@@ -592,11 +592,11 @@ root.addView(TextView(this).apply {
         val dusk=t["sunset"] ?: "19:00"
         val night=nowText < dawn || nowText >= dusk
         val root=FrameLayout(this).apply {
-            setBackgroundColor(if(night)0xff0b2634.toInt() else 0xff65a9c3.toInt())
+            background=AliebaPatternDrawable(resources.displayMetrics.density)
         }
         val scroll=ScrollView(this).apply {isFillViewport=true;clipToPadding=false;setPadding(0,0,0,dp(108))}
         val body=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL}
-        val heroHeight=(resources.displayMetrics.heightPixels * .46f).toInt().coerceIn(dp(333),dp(445))
+        val heroHeight=(resources.displayMetrics.heightPixels * .49f).toInt().coerceIn(dp(355),dp(450))
         val hero=FrameLayout(this)
         hero.addView(MosqueSceneView(this,night),FrameLayout.LayoutParams(-1,-1))
         val top=LinearLayout(this).apply {
@@ -658,13 +658,15 @@ root.addView(TextView(this).apply {
             Triple("Məsləhət",R.drawable.ic_hadith,0xffb69038.toInt()),
             Triple("Kömək et",R.drawable.ic_heart,0xffb77b3f.toInt()),
             Triple("Yadda saxla",R.drawable.ic_heart,0xff8a64b7.toInt()),
+            Triple("Zikr və təsbeh",R.drawable.ic_tasbeh,0xff128977.toInt()),
+            Triple("Qiblə kompası",R.drawable.ic_qibla,0xff367f91.toInt()),
             Triple("Ayarlar",R.drawable.ic_settings,0xff528d71.toInt())
         )
         entries.forEach { (title,icon,color) ->
             val cell=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER}
             cell.addView(ImageView(this).apply {setImageResource(icon);setColorFilter(Color.WHITE);background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(color,blend(color,Color.WHITE,.12f))).apply {cornerRadius=dp(20).toFloat();setStroke(dp(1),0x33ffffff)};setPadding(dp(17),dp(17),dp(17),dp(17));elevation=dp(3).toFloat()},LinearLayout.LayoutParams(dp(70),dp(70)))
             cell.addView(label(title,12f,ink),LinearLayout.LayoutParams(-1,dp(25)))
-            cell.setOnClickListener {when(title) {"Ayarlar"->showSettings();"Yeniliklər"->showNews();"Məsləhət"->startActivity(Intent(this,NativeAdviceActivity::class.java));"Kömək et"->startActivity(Intent(this,NativeDonateActivity::class.java));else->openWebsiteSection(title)}}
+            cell.setOnClickListener {when(title) {"Ayarlar"->showSettings();"Yeniliklər"->showNews();"Məsləhət"->startActivity(Intent(this,NativeAdviceActivity::class.java));"Kömək et"->startActivity(Intent(this,NativeDonateActivity::class.java));"Zikr və təsbeh"->startActivity(Intent(this,ZikrActivity::class.java));"Qiblə kompası"->startActivity(Intent(this,QiblaActivity::class.java));else->openWebsiteSection(title)}}
             icons.addView(cell,android.widget.GridLayout.LayoutParams().apply {
                 width=0;height=dp(118)
                 columnSpec=android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED,1f)

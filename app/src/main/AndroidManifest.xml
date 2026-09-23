@@ -11,6 +11,8 @@
         <activity android:name=".MainActivity" android:screenOrientation="portrait" android:exported="true">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>
+        <activity android:name=".ZikrActivity" android:exported="false"/>
+        <activity android:name=".QiblaActivity" android:exported="false"/>
         <activity android:name=".NativeContentActivity" android:exported="false"/>
         <activity android:name=".NativeSettingsActivity" android:exported="false"/>
         <activity android:name=".NativeAdviceActivity" android:exported="false" android:windowSoftInputMode="adjustResize"/>

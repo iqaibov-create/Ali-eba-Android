@@ -29,6 +29,7 @@ class NativeContentActivity:Activity() {
     private val gold=0xffb79150.toInt()
     private lateinit var body:LinearLayout
     private lateinit var heading:TextView
+    private lateinit var quranPlayer:QuranPlayerPanel
     private var section="mafatih"
     private var categoryId=0
     private var categories=JSONArray()
@@ -47,7 +48,7 @@ class NativeContentActivity:Activity() {
         baseScreen(titleFor(section))
         when(section){"quran"->surahList();"news"->loadNews();"saved"->showSaved();else->loadContent()}
     }
-    override fun onDestroy(){stopAudio();super.onDestroy()}
+    override fun onDestroy(){stopAudio();if(::quranPlayer.isInitialized)quranPlayer.close();super.onDestroy()}
     private fun dp(x:Int)=(x*resources.displayMetrics.density).toInt()
     private fun shape(color:Int,r:Int=18)=GradientDrawable().apply{setColor(color);cornerRadius=dp(r).toFloat()}
     private fun text(t:String,size:Float=16f,color:Int=ink,bold:Boolean=false)=TextView(this).apply{
@@ -55,6 +56,7 @@ class NativeContentActivity:Activity() {
     }
     private fun titleFor(s:String)=when(s){"quran"->"Quran";"mafatih"->"Məfatih";"ahkam"->"Əhkam";"hadis"->"Hədislər";"mersiye"->"Mərsiyələr";"kitabxana"->"Kitabxana";"news"->"Yeniliklər";"saved"->"Yadda saxlananlar";else->"Alieba"}
     private fun baseScreen(title:String){
+        if(::quranPlayer.isInitialized)quranPlayer.close()
         val root=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;background=AliebaPatternDrawable(resources.displayMetrics.density)}
         val bar=LinearLayout(this).apply{gravity=Gravity.CENTER_VERTICAL;setPadding(dp(18),dp(10),dp(18),dp(10));setBackgroundColor(Color.WHITE)}
         bar.addView(text("‹",36f,ink).apply{gravity=Gravity.CENTER;setOnClickListener{finish()}},LinearLayout.LayoutParams(dp(44),dp(48)))
@@ -65,6 +67,8 @@ class NativeContentActivity:Activity() {
         val scroll=ScrollView(this).apply{isFillViewport=true;clipToPadding=false;background=AliebaPatternDrawable(resources.displayMetrics.density)}
         body=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(17),dp(16),dp(17),dp(30))}
         scroll.addView(body);root.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
+        quranPlayer=QuranPlayerPanel(this)
+        root.addView(quranPlayer,LinearLayout.LayoutParams(-1,dp(89)))
         root.addView(AliebaBottomNav.make(this,section),LinearLayout.LayoutParams(-1,dp(87)))
         setContentView(root)
     }
@@ -205,7 +209,7 @@ class NativeContentActivity:Activity() {
             button("♥  ${e.optString("title")}  ·  ${titleFor(e.optString("section"))}"){
                 val dest=e.optString("section")
                 if(dest=="quran"){
-                    section="quran";showSurah(e.optString("id").substringBefore(':').toIntOrNull()?:1)
+                    section="quran";baseScreen("Quran");showSurah(e.optString("id").substringBefore(':').toIntOrNull()?:1)
                 }else{section=dest;categoryId=0;query="";loadContent()}
             }
         }
@@ -228,7 +232,7 @@ class NativeContentActivity:Activity() {
         }
     }
     private fun surahList(){
-        body.removeAllViews();heading("Qurani-Kərim")
+        quranPlayer.stopAndHide();body.removeAllViews();heading("Qurani-Kərim")
         val last=favorites.getInt("last_surah",0)
         if(last in 1..114)button("▶  Qaldığım yerdən davam et · ${last}. ${surahs[last-1]}"){showSurah(last)}
         val search=EditText(this).apply{hint="Surə axtar…";setSingleLine(true);background=shape(Color.WHITE);setPadding(dp(15),0,dp(15),0)}
@@ -243,7 +247,7 @@ class NativeContentActivity:Activity() {
         draw("")
     }
     private fun showSurah(number:Int){
-        section="quran";stopAudio();body.removeAllViews();heading("$number. ${surahs[number-1]}")
+        section="quran";stopAudio();quranPlayer.stopAndHide();body.removeAllViews();heading("$number. ${surahs[number-1]}")
         message("Ayələr və Azərbaycan dilində tərcümə yüklənir…")
         fetch("/api/quran.php?surah=$number"){ json ->
             body.removeAllViews();heading("$number. ${surahs[number-1]}")
@@ -253,6 +257,9 @@ class NativeContentActivity:Activity() {
             button("‹  Surə siyahısı"){stopAudio();surahList()}
             val last=favorites.getInt("last_ayah_$number",0)
             if(last>0)message("Qaldığınız ayə: $number:$last")
+            quranPlayer.bind(number,verses,last.coerceAtLeast(1)){sura,ayah->
+                favorites.edit().putInt("last_surah",sura).putInt("last_ayah_$sura",ayah).apply()
+            }
             for(i in 0 until verses.length()){
                 val ayah=verses.optJSONObject(i)?:continue
                 val n=ayah.optInt("number")
@@ -263,7 +270,7 @@ class NativeContentActivity:Activity() {
                 val actions=LinearLayout(this).apply{gravity=Gravity.CENTER_VERTICAL;setPadding(0,dp(12),0,0)}
                 val listen=text("▶ Dinlə",14f,ink,true).apply{setPadding(0,dp(9),dp(14),dp(9));setOnClickListener{
                     favorites.edit().putInt("last_surah",number).putInt("last_ayah_$number",n).apply()
-                    playAudio(ayah.optString("audio"))
+                    quranPlayer.playAt(i)
                 }}
                 actions.addView(listen)
                 val fav=text(if(isSaved("quran","$number:$n"))"♥" else "♡",22f,gold).apply{setPadding(dp(9),dp(6),dp(9),dp(6));setOnClickListener{

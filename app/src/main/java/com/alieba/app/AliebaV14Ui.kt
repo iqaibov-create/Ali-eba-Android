@@ -11,23 +11,59 @@ import android.view.*
 import android.widget.*
 import kotlin.math.min
 
-/** Canvas-only decor: original user-provided photograph, no newly generated images. */
+/** V17: preserve the aspect of the ORIGINAL photo, extend only sky and animate stars on Canvas. */
 class MosqueSceneView(c:Context,private val night:Boolean):View(c){
     private val photo=BitmapFactory.decodeResource(resources,if(night)R.drawable.mosque_night else R.drawable.mosque_day)
-    private val paint=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val p=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val stars=(0 until 31).map { i ->
+        val x=((i*73+19)%97+1)/100f
+        val y=((i*43+7)%71+2)/100f
+        Triple(x,y,i*1.1f)
+    }
     override fun onDraw(canvas:Canvas){
         val w=width.toFloat();val h=height.toFloat()
         if(w<=0f||h<=0f||photo.width<=0)return
-        // The supplied landscape photograph keeps its native proportions.
         val imageHeight=w*photo.height.toFloat()/photo.width.toFloat()
-        val imageTop=h-imageHeight
-        paint.shader=LinearGradient(0f,0f,0f,h,
-            if(night)0xff102e39.toInt() else 0xff4295c3.toInt(),
-            if(night)0xff244269.toInt() else 0xffb6dded.toInt(),Shader.TileMode.CLAMP)
-        canvas.drawRect(0f,0f,w,h,paint)
-        paint.shader=null;paint.color=Color.WHITE;paint.colorFilter=null
-        canvas.drawBitmap(photo,null,RectF(0f,imageTop,w,h),paint)
-        // Colorful original night photo already has the courtyard lamps switched on.
+        val imageTop=(h-imageHeight).coerceAtLeast(0f)
+        // A portrait screen cannot contain a landscape photograph at full width and
+        // full height without cropping or stretching. Keep the building undistorted;
+        // fill the extra space with a sky that matches the photo, not a dark band.
+        p.color=Color.WHITE;p.colorFilter=null
+        p.shader=LinearGradient(0f,0f,0f,h,
+            if(night)0xff102e55.toInt() else 0xff4b9dc7.toInt(),
+            if(night)0xff244b79.toInt() else 0xffb8dfed.toInt(),Shader.TileMode.CLAMP)
+        canvas.drawRect(0f,0f,w,h,p);p.shader=null
+        if(imageTop>1f){
+            val skyPixels=(photo.height*.16f).toInt().coerceAtLeast(1)
+            p.alpha=215
+            canvas.drawBitmap(photo,Rect(0,0,photo.width,skyPixels),RectF(0f,0f,w,imageTop+2f),p)
+            p.alpha=255
+        }
+        // Draw photo once at its aspect-correct size. Never stretch the minaret.
+        val left=if(imageTop>0f)0f else (w-h*photo.width/photo.height)/2f
+        val dest=if(imageTop>0f)RectF(0f,imageTop,w,h) else RectF(left,0f,left+h*photo.width/photo.height,h)
+        canvas.drawBitmap(photo,null,dest,p)
+        if(night){
+            val tm=android.os.SystemClock.uptimeMillis()
+            val skyLimit=if(imageTop>0f)imageTop+imageHeight*.12f else h*.24f
+            // Small, slowly twinkling stars only over the sky; no image generation.
+            stars.forEachIndexed { i,v ->
+                val opacity=(110+110*kotlin.math.sin(tm/1100.0+i*.87)).toInt().coerceIn(20,225)
+                p.color=Color.argb(opacity,255,248,211)
+                val x=v.first*w;val y=v.second*skyLimit
+                canvas.drawCircle(x,y,if(i%7==0)1.7f else .9f,p)
+            }
+            val cycle=tm%11000L
+            if(cycle<1050L){
+                val f=cycle/1050f
+                val x=w*(.13f+f*.52f)
+                val y=skyLimit*(.15f+f*.43f)
+                p.color=Color.WHITE;p.strokeWidth=2.0f
+                canvas.drawLine(x-w*.13f,y-skyLimit*.1f,x,y,p)
+                canvas.drawCircle(x,y,2.3f,p)
+            }
+            postInvalidateDelayed(95L)
+        }
     }
 }
 
