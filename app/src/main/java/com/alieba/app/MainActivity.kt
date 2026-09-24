@@ -661,21 +661,20 @@ root.addView(TextView(this).apply {
         val heroHeight=(resources.displayMetrics.heightPixels * .49f).toInt().coerceIn(dp(355),dp(450))
         val hero=FrameLayout(this)
         hero.addView(MosqueSceneView(this,night),FrameLayout.LayoutParams(-1,-1))
+        hero.addView(View(this).apply {background=AliebaHeroFrameDrawable(resources.displayMetrics.density)},FrameLayout.LayoutParams(-1,-1))
         val top=LinearLayout(this).apply {
             gravity=Gravity.CENTER_VERTICAL;orientation=LinearLayout.HORIZONTAL
             setPadding(dp(13),dp(8),dp(17),0)
         }
-        val brandIcon=label("☪",23f,0xfff5d999.toInt(),true).apply {
-            background=tileBg(0x990e4644.toInt(),13)
-        }
-        top.addView(brandIcon,LinearLayout.LayoutParams(dp(45),dp(45)))
+        val brandIcon=ImageView(this).apply {setImageResource(R.drawable.alieba_gold_brand);scaleType=ImageView.ScaleType.FIT_CENTER;contentDescription="Alieba"}
+        top.addView(brandIcon,LinearLayout.LayoutParams(dp(48),dp(48)))
         val names=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER_VERTICAL;setPadding(dp(9),0,0,0)}
-        names.addView(label("Alieba App",18f,Color.WHITE,true).apply {gravity=Gravity.START})
+        names.addView(label("Alieba App",18f,0xfffff3d3.toInt(),true).apply {gravity=Gravity.START;typeface=Typeface.create("serif",Typeface.BOLD);setShadowLayer(dp(2).toFloat(),0f,dp(1).toFloat(),0xee142936.toInt())})
         names.addView(label("İmanla yaşa",10f,0xfff3e4bb.toInt()).apply {gravity=Gravity.START})
         top.addView(names,LinearLayout.LayoutParams(0,dp(52),1f))
         val avatar=ImageView(this).apply {
-            setImageResource(R.drawable.ic_profile);setColorFilter(Color.WHITE)
-            background=tileBg(0xad103d3a.toInt(),28)
+            setImageResource(R.drawable.ic_profile);setColorFilter(0xff73572f.toInt())
+            background=GradientDrawable().apply {shape=GradientDrawable.OVAL;setColor(0xedfff9e7.toInt());setStroke(dp(1),0xffd6ac62.toInt())}
             setPadding(dp(12),dp(12),dp(12),dp(12));setOnClickListener{showProfile()}
         }
         top.addView(avatar,LinearLayout.LayoutParams(dp(48),dp(48)))
@@ -686,7 +685,7 @@ root.addView(TextView(this).apply {
             orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER
             setPadding(dp(8),dp(2),dp(8),dp(2))
         }
-        val heading=label("Hər gün Allaha\ndaha yaxın",26f,Color.WHITE,true).apply {
+        val heading=label("Hər gün Allaha\ndaha yaxın",26f,0xfffff2d6.toInt(),true).apply {
             typeface=Typeface.create("serif",Typeface.BOLD)
             letterSpacing=.014f
             setLineSpacing(dp(1).toFloat(),1.03f)
@@ -710,8 +709,8 @@ root.addView(TextView(this).apply {
         val date=label(java.text.SimpleDateFormat("d MMMM, EEEE",java.util.Locale.forLanguageTag("az")).format(java.util.Date()),12f,Color.WHITE,true).apply {setShadowLayer(4f,0f,2f,0xbb001c20.toInt());setPadding(dp(8),dp(3),dp(8),dp(3))}
         hero.addView(date,FrameLayout.LayoutParams(-2,dp(30),Gravity.END or Gravity.BOTTOM).apply {rightMargin=dp(12);bottomMargin=dp(94)})
         // S-shaped white boundary. Timings float ABOVE the boundary like the reference.
-        hero.addView(View(this).apply {background=HeroWaveDrawable(0xfff7faf7.toInt(),dp(23).toFloat())},FrameLayout.LayoutParams(-1,dp(39),Gravity.BOTTOM))
-        hero.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(73),Gravity.BOTTOM).apply {bottomMargin=dp(23)})
+        hero.addView(View(this).apply {background=HeroWaveDrawable(0xfffffaef.toInt(),dp(23).toFloat())},FrameLayout.LayoutParams(-1,dp(39),Gravity.BOTTOM))
+        hero.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(81),Gravity.BOTTOM).apply {bottomMargin=dp(20)})
         body.addView(hero,LinearLayout.LayoutParams(-1,heroHeight))
         val sections=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL
@@ -741,11 +740,24 @@ root.addView(TextView(this).apply {
         )
         entries.forEach { (title,icon,color) ->
             val cell=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER}
-            cell.addView(ImageView(this).apply {setImageResource(icon);setColorFilter(Color.WHITE);background=GradientDrawable(GradientDrawable.Orientation.TL_BR,intArrayOf(color,blend(color,Color.WHITE,.12f))).apply {cornerRadius=dp(20).toFloat();setStroke(dp(1),0x33ffffff)};setPadding(dp(17),dp(17),dp(17),dp(17));elevation=dp(3).toFloat()},LinearLayout.LayoutParams(dp(70),dp(70)))
-            cell.addView(label(title,12f,ink),LinearLayout.LayoutParams(-1,dp(25)))
+            val ornateIcon=when(title){
+                "Quran"->R.drawable.alieba_ornament_quran
+                "Məfatih"->R.drawable.alieba_ornament_mafatih
+                "Əhkam"->R.drawable.alieba_ornament_ahkam
+                "Yeniliklər"->R.drawable.alieba_ornament_news
+                "Mərsiyələr"->R.drawable.alieba_ornament_mersiye
+                "Hədislər"->R.drawable.alieba_ornament_hadis
+                else->0
+            }
+            cell.addView(ImageView(this).apply {
+                if(ornateIcon!=0){setImageResource(ornateIcon);scaleType=ImageView.ScaleType.FIT_CENTER}
+                else {setImageResource(icon);setColorFilter(0xff95702f.toInt());background=AliebaGoldTileDrawable(resources.displayMetrics.density);setPadding(dp(20),dp(20),dp(20),dp(20))}
+                contentDescription=title
+            },LinearLayout.LayoutParams(dp(82),dp(82)))
+            cell.addView(label(title,12f,0xff453728.toInt()).apply {typeface=Typeface.create("serif",Typeface.NORMAL)},LinearLayout.LayoutParams(-1,dp(25)))
             cell.setOnClickListener {when(title) {"Ayarlar"->showSettings();"Yeniliklər"->showNews();"Məsləhət"->startActivity(Intent(this,NativeAdviceActivity::class.java));"Kömək et"->startActivity(Intent(this,NativeDonateActivity::class.java));"Zikr və təsbeh"->startActivity(Intent(this,ZikrActivity::class.java));"Qiblə kompası"->startActivity(Intent(this,QiblaActivity::class.java));else->openWebsiteSection(title)}}
             icons.addView(cell,android.widget.GridLayout.LayoutParams().apply {
-                width=0;height=dp(118)
+                width=0;height=dp(126)
                 columnSpec=android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED,1f)
                 setMargins(dp(1),dp(4),dp(1),dp(4))
             })
@@ -763,20 +775,17 @@ root.addView(TextView(this).apply {
     private fun prayerStrip():View {
         val t=PrayerClock.times(this)
         val active=PrayerClock.activeKey(this)
-        val row=LinearLayout(this).apply {gravity=Gravity.BOTTOM;orientation=LinearLayout.HORIZONTAL;setPadding(dp(3),dp(5),dp(3),dp(2))}
+        val row=LinearLayout(this).apply {gravity=Gravity.BOTTOM;orientation=LinearLayout.HORIZONTAL;setPadding(dp(2),dp(3),dp(2),dp(2))}
         for(i in PrayerClock.keys.indices) {
             val key=PrayerClock.keys[i]
             val name=PrayerClock.displayNames[i]
             val time=t[key] ?: "--:--"
             val selected=active==key && time!="--:--"
-            val background=GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,intArrayOf(if(selected)0xed183c36.toInt() else 0xa20b2429.toInt(),if(selected)0xe8234c42.toInt() else 0xb509171d.toInt())).apply {
-                cornerRadius=dp(11).toFloat()
-                if(selected)setStroke(dp(2),0xffedcc78.toInt()) else setStroke(dp(1),0x33ffffff)
-            }
-            val card=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL;this.background=background;elevation=if(selected)dp(7).toFloat() else dp(1).toFloat();setOnClickListener{prayerSettings()} }
+            val background=AliebaPrayerCardDrawable(resources.displayMetrics.density,selected)
+            val card=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL;this.background=background;setPadding(0,dp(7),0,0);elevation=if(selected)dp(5).toFloat() else 0f;setOnClickListener{prayerSettings()} }
             card.addView(label(name,8f,if(selected)0xffffe8a3.toInt() else Color.WHITE,selected).apply {setLines(2);setShadowLayer(if(selected)5f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(32)))
             card.addView(label(time,10f,if(selected)0xffffe09b.toInt() else Color.WHITE,true).apply {setShadowLayer(if(selected)6f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(19)))
-            row.addView(card,LinearLayout.LayoutParams(0,if(selected)dp(66) else dp(59),1f).apply {setMargins(dp(1),0,dp(1),0)})
+            row.addView(card,LinearLayout.LayoutParams(0,if(selected)dp(77) else dp(71),1f).apply {setMargins(dp(1),0,dp(1),0)})
         }
         return row
     }

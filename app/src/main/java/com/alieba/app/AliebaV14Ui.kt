@@ -72,18 +72,25 @@ class AliebaPatternDrawable(private val density:Float):Drawable(){
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
     override fun draw(c:Canvas){
         val w=bounds.width().toFloat();val h=bounds.height().toFloat()
-        p.color=0xfff5f8f6.toInt();p.style=Paint.Style.FILL
+        p.style=Paint.Style.FILL;p.color=0xfffffaef.toInt()
         c.drawRect(0f,0f,w,h,p)
-        val step=92f*density
-        p.style=Paint.Style.STROKE;p.strokeWidth=.65f*density;p.color=0x13a2bbaa
+        val step=90f*density
+        p.style=Paint.Style.STROKE;p.strokeWidth=.8f*density;p.color=0x17ad8d55
         var y=-step
         while(y<h+step){
             var x=-step
             while(x<w+step){
-                val r=step*.28f
-                c.drawLine(x,y-r,x+r,y,p);c.drawLine(x+r,y,x,y+r,p)
-                c.drawLine(x,y+r,x-r,y,p);c.drawLine(x-r,y,x,y-r,p)
-                c.drawCircle(x,y,r*.34f,p)
+                val r=step*.32f
+                val petal=Path().apply {
+                    moveTo(x,y-r)
+                    cubicTo(x+r*.48f,y-r*.52f,x+r*.48f,y+r*.52f,x,y+r)
+                    cubicTo(x-r*.48f,y+r*.52f,x-r*.48f,y-r*.52f,x,y-r)
+                }
+                c.drawPath(petal,p)
+                c.drawCircle(x,y,r*.32f,p)
+                c.drawLine(x-r*.65f,y,x+r*.65f,y,p)
+                c.drawLine(x,y-r*.65f,x,y+r*.65f,p)
+                c.drawCircle(x+r*.72f,y+r*.72f,r*.15f,p)
                 x+=step
             }
             y+=step
@@ -93,6 +100,103 @@ class AliebaPatternDrawable(private val density:Float):Drawable(){
     override fun setAlpha(alpha:Int){p.alpha=alpha}
     override fun setColorFilter(filter:android.graphics.ColorFilter?){p.colorFilter=filter}
     override fun getOpacity()=android.graphics.PixelFormat.OPAQUE
+}
+
+/** Ornamental native drawing; actual prayer times remain dynamic, never baked into an image. */
+class AliebaPrayerCardDrawable(private val density:Float,private val active:Boolean):Drawable(){
+    private val p=Paint(Paint.ANTI_ALIAS_FLAG)
+    private val gold=0xffdfb66c.toInt()
+    override fun draw(c:Canvas){
+        val w=bounds.width().toFloat();val h=bounds.height().toFloat()
+        val rr=RectF(1.5f*density,3f*density,w-1.5f*density,h-1.5f*density)
+        p.style=Paint.Style.FILL
+        p.shader=LinearGradient(0f,0f,0f,h,
+            if(active)0xff17665b.toInt() else 0xff0d304b.toInt(),
+            if(active)0xff0b3f3c.toInt() else 0xff071e33.toInt(),Shader.TileMode.CLAMP)
+        c.drawRoundRect(rr,13f*density,13f*density,p);p.shader=null
+        p.style=Paint.Style.STROKE;p.strokeWidth=(if(active)2f else .9f)*density
+        p.color=if(active)0xffffdd8f.toInt() else gold
+        c.drawRoundRect(rr,13f*density,13f*density,p)
+        p.color=0xb9dcb570.toInt();p.strokeWidth=.65f*density
+        val inset=5f*density
+        c.drawRoundRect(RectF(rr.left+inset,rr.top+inset,rr.right-inset,rr.bottom-inset),10f*density,10f*density,p)
+        // Gold Islamic arch and a small centred diamond at the top.
+        val cy=rr.top+8f*density
+        val arch=Path().apply{
+            moveTo(rr.left+9*density,cy+5*density)
+            cubicTo(rr.left+15*density,cy+4*density,w*.37f,cy+4*density,w*.5f,cy-3*density)
+            cubicTo(w*.63f,cy+4*density,rr.right-15*density,cy+4*density,rr.right-9*density,cy+5*density)
+        }
+        c.drawPath(arch,p)
+        val diamond=Path().apply{moveTo(w*.5f,cy-5*density);lineTo(w*.5f+3*density,cy-2*density);lineTo(w*.5f,cy+1*density);lineTo(w*.5f-3*density,cy-2*density);close()}
+        p.style=Paint.Style.FILL;p.color=0xffffdb8c.toInt();c.drawPath(diamond,p)
+        if(active){p.style=Paint.Style.STROKE;p.strokeWidth=1.6f*density;p.color=0x99ffe1a1.toInt();c.drawRoundRect(RectF(rr.left-1*density,rr.top-1*density,rr.right+1*density,rr.bottom+1*density),14*density,14*density,p)}
+        p.style=Paint.Style.FILL
+    }
+    override fun setAlpha(alpha:Int){p.alpha=alpha}
+    override fun setColorFilter(filter:android.graphics.ColorFilter?){p.colorFilter=filter}
+    override fun getOpacity()=android.graphics.PixelFormat.TRANSLUCENT
+}
+
+/** A hairline gold frame only: never covers/dims the original mosque photograph. */
+class AliebaHeroFrameDrawable(private val density:Float):Drawable(){
+    private val p=Paint(Paint.ANTI_ALIAS_FLAG)
+    override fun draw(c:Canvas){
+        val w=bounds.width().toFloat();val h=bounds.height().toFloat()
+        val m=7*density
+        p.style=Paint.Style.STROKE;p.color=0xdbe9c987.toInt();p.strokeWidth=1.5f*density
+        c.drawRoundRect(RectF(m,m,w-m,h-18*density),24*density,24*density,p)
+        p.color=0x66fff8de;p.strokeWidth=.5f*density
+        c.drawRoundRect(RectF(m+3*density,m+3*density,w-m-3*density,h-21*density),22*density,22*density,p)
+        p.style=Paint.Style.FILL
+    }
+    override fun setAlpha(alpha:Int){p.alpha=alpha}
+    override fun setColorFilter(filter:android.graphics.ColorFilter?){p.colorFilter=filter}
+    override fun getOpacity()=android.graphics.PixelFormat.TRANSLUCENT
+}
+
+/** Shared ivory/gold footer wave on the home screen and EVERY inner activity. */
+class AliebaIvoryWaveDrawable(private val density:Float):Drawable(){
+    private val p=Paint(Paint.ANTI_ALIAS_FLAG)
+    override fun draw(c:Canvas){
+        val w=bounds.width().toFloat();val h=bounds.height().toFloat();val a=19*density
+        val path=Path().apply {
+            moveTo(0f,a)
+            cubicTo(w*.15f,a*.72f,w*.34f,a*.85f,w*.40f,a*.60f)
+            cubicTo(w*.45f,a*.50f,w*.46f,0f,w*.50f,0f)
+            cubicTo(w*.54f,0f,w*.55f,a*.50f,w*.60f,a*.60f)
+            cubicTo(w*.72f,a*.90f,w*.85f,a*.72f,w,a)
+            lineTo(w,h);lineTo(0f,h);close()
+        }
+        p.style=Paint.Style.FILL;p.color=0xfffffbf2.toInt();c.drawPath(path,p)
+        p.style=Paint.Style.STROKE;p.strokeWidth=1.1f*density;p.color=0xffd8b573.toInt()
+        c.drawPath(Path().apply{
+            moveTo(0f,a)
+            cubicTo(w*.15f,a*.72f,w*.34f,a*.85f,w*.40f,a*.60f)
+            cubicTo(w*.45f,a*.50f,w*.46f,0f,w*.50f,0f)
+            cubicTo(w*.54f,0f,w*.55f,a*.50f,w*.60f,a*.60f)
+            cubicTo(w*.72f,a*.90f,w*.85f,a*.72f,w,a)
+        },p)
+        p.style=Paint.Style.FILL
+    }
+    override fun setAlpha(alpha:Int){p.alpha=alpha}
+    override fun setColorFilter(filter:android.graphics.ColorFilter?){p.colorFilter=filter}
+    override fun getOpacity()=android.graphics.PixelFormat.TRANSLUCENT
+}
+
+class AliebaGoldTileDrawable(private val density:Float):Drawable(){
+    private val p=Paint(Paint.ANTI_ALIAS_FLAG)
+    override fun draw(c:Canvas){
+        val w=bounds.width().toFloat();val h=bounds.height().toFloat();val r=18*density
+        val box=RectF(2*density,2*density,w-2*density,h-3*density)
+        p.style=Paint.Style.FILL;p.shader=LinearGradient(0f,0f,w,h,0xfffffff8.toInt(),0xffe6d7ba.toInt(),Shader.TileMode.CLAMP)
+        c.drawRoundRect(box,r,r,p);p.shader=null
+        p.style=Paint.Style.STROKE;p.color=0xffd4ae67.toInt();p.strokeWidth=1.1f*density;c.drawRoundRect(box,r,r,p)
+        p.style=Paint.Style.FILL
+    }
+    override fun setAlpha(alpha:Int){p.alpha=alpha}
+    override fun setColorFilter(filter:android.graphics.ColorFilter?){p.colorFilter=filter}
+    override fun getOpacity()=android.graphics.PixelFormat.TRANSLUCENT
 }
 
 object AliebaBottomNav {
@@ -126,7 +230,7 @@ object AliebaBottomNav {
             }
         }
         val frame=FrameLayout(c).apply {
-            background=BottomWaveDrawable(Color.WHITE,dp(c,24).toFloat())
+            background=AliebaIvoryWaveDrawable(c.resources.displayMetrics.density)
             elevation=dp(c,6).toFloat()
             clipChildren=false;clipToPadding=false
         }
@@ -143,11 +247,11 @@ object AliebaBottomNav {
             }
             v.addView(ImageView(c).apply {
                 setImageResource(icon)
-                setColorFilter(if(selected)accent else 0xff546b69.toInt())
+                setColorFilter(if(selected)0xff146c7e.toInt() else 0xff81683f.toInt())
             },LinearLayout.LayoutParams(dp(c,22),dp(c,22)))
             v.addView(TextView(c).apply {
                 text=title;textSize=9.5f;gravity=Gravity.CENTER
-                setTextColor(if(selected)accent else 0xff506662.toInt())
+                setTextColor(if(selected)0xff195f74.toInt() else 0xff584736.toInt())
                 isSingleLine=true
                 setPadding(0,dp(c,3),0,0)
             },LinearLayout.LayoutParams(-1,dp(c,20)))
@@ -160,19 +264,15 @@ object AliebaBottomNav {
         cell("Kömək et",R.drawable.ic_heart,"donate")
         frame.addView(line,FrameLayout.LayoutParams(-1,-1))
         val center=FrameLayout(c).apply {
-            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(accent,if(section=="home")0xff228dc5.toInt() else 0xff75b9a7.toInt())).apply {
-                shape=GradientDrawable.OVAL
-            }
-            elevation=dp(c,5).toFloat()
+            elevation=dp(c,4).toFloat()
             setOnClickListener{open("ai")}
         }
         center.addView(ImageView(c).apply {
-            setImageResource(R.drawable.ic_alieba_ai)
-            setColorFilter(Color.WHITE)
-            setPadding(dp(c,14),dp(c,14),dp(c,14),dp(c,14))
+            setImageResource(R.drawable.alieba_gold_ai)
+            scaleType=ImageView.ScaleType.FIT_CENTER
+            contentDescription="Alieba köməkçi"
         },FrameLayout.LayoutParams(-1,-1))
-        frame.addView(center,FrameLayout.LayoutParams(dp(c,66),dp(c,66),Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply {topMargin=dp(c,1)})
+        frame.addView(center,FrameLayout.LayoutParams(dp(c,76),dp(c,76),Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply {topMargin=dp(c,0)})
         return frame
     }
 }
