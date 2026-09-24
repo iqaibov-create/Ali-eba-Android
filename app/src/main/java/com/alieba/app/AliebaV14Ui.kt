@@ -34,7 +34,7 @@ class MosqueSceneView(c:Context,private val night:Boolean):View(c){
         if(photo.height > photo.width){
             // Portrait image: crop a controlled vertical window so the mosque fits naturally.
             val viewRatio=w/h
-            val cropH=((photo.width / viewRatio)*1.28f).toInt().coerceAtMost(photo.height)
+            val cropH=((photo.width / viewRatio)*1.35f).toInt().coerceAtMost(photo.height)
             // V19.3: zoom the ORIGINAL mosque photo out vertically so the full front of the building stays visible.
             // Keep the ground in view; never paint or dim the picture for the star effect.
             val srcTop=(photo.height-cropH).coerceAtLeast(0)
@@ -134,6 +134,48 @@ class AliebaHeroDividerDrawable(private val density:Float):Drawable(){
             }
             x+=step
         }
+        p.style=Paint.Style.FILL
+    }
+    override fun setAlpha(alpha:Int){p.alpha=alpha}
+    override fun setColorFilter(filter:android.graphics.ColorFilter?){p.colorFilter=filter}
+    override fun getOpacity()=android.graphics.PixelFormat.TRANSLUCENT
+}
+
+/** V19.4: decorative pedestal UNDER (not on top of) the real mosque photograph.
+ * Its pointed gold-ivory bottom mirrors the approved reference without hiding the building. */
+class AliebaPrayerPanelDrawable(private val density:Float):Drawable(){
+    private val p=Paint(Paint.ANTI_ALIAS_FLAG)
+    override fun draw(c:Canvas){
+        val w=bounds.width().toFloat();val h=bounds.height().toFloat();val d=density
+        val lip=h-17f*d;val cx=w*.5f
+        val shape=Path().apply{
+            moveTo(0f,0f);lineTo(w,0f);lineTo(w,lip)
+            lineTo(cx+21*d,lip)
+            cubicTo(cx+12*d,lip+1*d,cx+7*d,lip+11*d,cx,lip+16*d)
+            cubicTo(cx-7*d,lip+11*d,cx-12*d,lip+1*d,cx-21*d,lip)
+            lineTo(0f,lip);close()
+        }
+        p.style=Paint.Style.FILL
+        p.shader=LinearGradient(0f,0f,0f,lip,
+            intArrayOf(0xfffff7e6.toInt(),0xffead0a0.toInt(),0xfff8efd8.toInt()),
+            floatArrayOf(0f,.53f,1f),Shader.TileMode.CLAMP)
+        c.drawPath(shape,p);p.shader=null
+        // Fine gold upper and lower edges follow the triangular point.
+        p.style=Paint.Style.STROKE;p.strokeWidth=1.35f*d;p.color=0xffbe934c.toInt()
+        c.drawLine(0f,1.3f*d,w,1.3f*d,p)
+        val edge=Path().apply{
+            moveTo(0f,lip);lineTo(cx-21*d,lip)
+            cubicTo(cx-12*d,lip+1*d,cx-7*d,lip+11*d,cx,lip+16*d)
+            cubicTo(cx+7*d,lip+11*d,cx+12*d,lip+1*d,cx+21*d,lip)
+            lineTo(w,lip)
+        }
+        c.drawPath(edge,p)
+        p.strokeWidth=.6f*d;p.color=0x99ffffff.toInt()
+        c.save();c.translate(0f,2.5f*d);c.drawPath(edge,p);c.restore()
+        // A tiny centred gold ornament at the tip, below the prayer cards.
+        p.style=Paint.Style.FILL;p.color=0xffbd8936.toInt()
+        val gem=Path().apply{moveTo(cx,lip+6*d);lineTo(cx+4*d,lip+10*d);lineTo(cx,lip+14*d);lineTo(cx-4*d,lip+10*d);close()}
+        c.drawPath(gem,p)
         p.style=Paint.Style.FILL
     }
     override fun setAlpha(alpha:Int){p.alpha=alpha}
