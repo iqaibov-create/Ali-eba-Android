@@ -34,8 +34,8 @@ class MosqueSceneView(c:Context,private val night:Boolean):View(c){
         if(photo.height > photo.width){
             // Portrait image: crop a controlled vertical window so the mosque fits naturally.
             val viewRatio=w/h
-            val cropH=((photo.width / viewRatio)*1.12f).toInt().coerceAtMost(photo.height)
-            // A slightly wider vertical framing reveals more of the user's ORIGINAL mosque image.
+            val cropH=((photo.width / viewRatio)*1.28f).toInt().coerceAtMost(photo.height)
+            // V19.3: zoom the ORIGINAL mosque photo out vertically so the full front of the building stays visible.
             // Keep the ground in view; never paint or dim the picture for the star effect.
             val srcTop=(photo.height-cropH).coerceAtLeast(0)
             val src=Rect(0,srcTop,photo.width,srcTop+cropH)
@@ -72,32 +72,29 @@ class AliebaPatternDrawable(private val density:Float):Drawable(){
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
     override fun draw(c:Canvas){
         val w=bounds.width().toFloat();val h=bounds.height().toFloat()
-        p.style=Paint.Style.FILL;p.color=0xfffff9ed.toInt()
+        p.style=Paint.Style.FILL;p.color=0xfffffbf3.toInt()
         c.drawRect(0f,0f,w,h,p)
-        val step=102f*density
-        p.style=Paint.Style.STROKE;p.strokeWidth=.73f*density
+        val step=88f*density
+        p.style=Paint.Style.STROKE;p.strokeWidth=.58f*density
         var y=-step
         while(y<h+step){
             var x=-step
             while(x<w+step){
-                val r=step*.28f
-                p.color=0x1fb38c54
-                // Small four-petal arabesque with a pointed arch and restrained gold detailing.
+                val r=step*.24f
+                p.color=0x0dbb965d
                 val motif=Path().apply {
                     moveTo(x,y-r)
-                    cubicTo(x+r*.62f,y-r*.45f,x+r*.62f,y+r*.45f,x,y+r)
-                    cubicTo(x-r*.62f,y+r*.45f,x-r*.62f,y-r*.45f,x,y-r)
+                    cubicTo(x+r*.58f,y-r*.42f,x+r*.58f,y+r*.42f,x,y+r)
+                    cubicTo(x-r*.58f,y+r*.42f,x-r*.58f,y-r*.42f,x,y-r)
                     close()
                     moveTo(x-r,y)
-                    cubicTo(x-r*.45f,y-r*.62f,x+r*.45f,y-r*.62f,x+r,y)
-                    cubicTo(x+r*.45f,y+r*.62f,x-r*.45f,y+r*.62f,x-r,y)
+                    cubicTo(x-r*.42f,y-r*.58f,x+r*.42f,y-r*.58f,x+r,y)
+                    cubicTo(x+r*.42f,y+r*.58f,x-r*.42f,y+r*.58f,x-r,y)
                     close()
                 }
                 c.drawPath(motif,p)
-                p.color=0x12b68f57
-                c.drawCircle(x,y,r*.38f,p)
-                c.drawCircle(x+r*.92f,y+r*.92f,r*.17f,p)
-                c.drawCircle(x-r*.92f,y-r*.92f,r*.17f,p)
+                p.color=0x09b88f54
+                c.drawCircle(x,y,r*.32f,p)
                 x+=step
             }
             y+=step
@@ -113,43 +110,29 @@ class AliebaPatternDrawable(private val density:Float):Drawable(){
 class AliebaHeroDividerDrawable(private val density:Float):Drawable(){
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
     override fun draw(c:Canvas){
-        val w=bounds.width().toFloat();val h=bounds.height().toFloat()
-        val d=density
-        val edge=Path().apply {
-            moveTo(0f,h*.32f)
-            lineTo(w*.38f,h*.32f)
-            cubicTo(w*.44f,h*.32f,w*.46f,h*.14f,w*.5f,h*.07f)
-            cubicTo(w*.54f,h*.14f,w*.56f,h*.32f,w*.62f,h*.32f)
-            lineTo(w,h*.32f)
-            lineTo(w,h);lineTo(0f,h);close()
-        }
-        p.style=Paint.Style.FILL;p.color=0xfffff9ed.toInt();c.drawPath(edge,p)
-        p.style=Paint.Style.STROKE;p.strokeWidth=1.35f*d;p.color=0xffd6ac60.toInt()
-        val top=Path().apply{
-            moveTo(0f,h*.32f);lineTo(w*.38f,h*.32f)
-            cubicTo(w*.44f,h*.32f,w*.46f,h*.14f,w*.5f,h*.07f)
-            cubicTo(w*.54f,h*.14f,w*.56f,h*.32f,w*.62f,h*.32f)
-            lineTo(w,h*.32f)
-        }
-        c.drawPath(top,p)
-        p.strokeWidth=.65f*d;p.color=0x88b98a48.toInt()
-        c.save();c.translate(0f,3.6f*d);c.drawPath(top,p);c.restore()
+        val w=bounds.width().toFloat();val h=bounds.height().toFloat();val d=density
+        val y=7f*d
+        p.style=Paint.Style.STROKE;p.strokeCap=Paint.Cap.ROUND
+        p.color=0xffe6c27a.toInt();p.strokeWidth=2.2f*d
+        c.drawLine(0f,y,w*.43f,y,p);c.drawLine(w*.57f,y,w,y,p)
+        p.color=0xffffedd0.toInt();p.strokeWidth=.7f*d
+        c.drawLine(0f,y+3.2f*d,w*.44f,y+3.2f*d,p);c.drawLine(w*.56f,y+3.2f*d,w,y+3.2f*d,p)
+        val cx=w*.5f;val cy=11f*d
         p.style=Paint.Style.FILL;p.color=0xffc99b49.toInt()
-        val cx=w*.5f;val cy=h*.48f
-        val gem=Path().apply{moveTo(cx,cy-6*d);lineTo(cx+5*d,cy);lineTo(cx,cy+6*d);lineTo(cx-5*d,cy);close()}
+        val gem=Path().apply{
+            moveTo(cx,cy-8*d);lineTo(cx+7*d,cy);lineTo(cx,cy+9*d);lineTo(cx-7*d,cy);close()
+        }
         c.drawPath(gem,p)
-        p.color=0xfffbf1d7.toInt();c.drawCircle(cx,cy,1.7f*d,p)
-        p.style=Paint.Style.STROKE;p.strokeWidth=.65f*d;p.color=0x66bc9656
-        val spacing=23f*d
-        var x=12f*d
-        while(x<w){
-            if(kotlin.math.abs(x-cx)>12*d){
-                val yy=h*.56f
-                c.drawCircle(x,yy,1.65f*d,p)
-                c.drawLine(x-5*d,yy,x-2.7f*d,yy,p)
-                c.drawLine(x+2.7f*d,yy,x+5*d,yy,p)
+        p.color=0xfffff0c8.toInt();c.drawCircle(cx,cy,2.1f*d,p)
+        p.style=Paint.Style.STROKE;p.strokeWidth=.75f*d;p.color=0x99d0a45a.toInt()
+        val step=31f*d;var x=12f*d
+        while(x<w-12f*d){
+            if(kotlin.math.abs(x-cx)>24*d){
+                c.drawCircle(x,y+3.1f*d,1.45f*d,p)
+                c.drawLine(x-5*d,y+3.1f*d,x-2.6f*d,y+3.1f*d,p)
+                c.drawLine(x+2.6f*d,y+3.1f*d,x+5*d,y+3.1f*d,p)
             }
-            x+=spacing
+            x+=step
         }
         p.style=Paint.Style.FILL
     }
@@ -201,31 +184,43 @@ class AliebaPrayerSymbolView(c:Context,private val key:String):View(c){
 class AliebaPrayerCardDrawable(private val density:Float,private val active:Boolean):Drawable(){
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
     private val gold=0xffdfb66c.toInt()
+    private fun archPath(w:Float,h:Float,inset:Float):Path{
+        val d=density;val l=inset;val r=w-inset;val t=inset;val b=h-inset
+        val shoulder=t+13*d;val corner=10*d
+        return Path().apply{
+            moveTo(l+corner,shoulder)
+            cubicTo(l+corner,shoulder-5*d,w*.31f,t+8*d,w*.40f,t+8*d)
+            cubicTo(w*.455f,t+8*d,w*.47f,t+1*d,w*.50f,t)
+            cubicTo(w*.53f,t+1*d,w*.545f,t+8*d,w*.60f,t+8*d)
+            cubicTo(w*.69f,t+8*d,r-corner,shoulder-5*d,r-corner,shoulder)
+            quadTo(r,shoulder,r,shoulder+corner)
+            lineTo(r,b-corner);quadTo(r,b,r-corner,b)
+            lineTo(l+corner,b);quadTo(l,b,l,b-corner)
+            lineTo(l,shoulder+corner);quadTo(l,shoulder,l+corner,shoulder)
+            close()
+        }
+    }
     override fun draw(c:Canvas){
-        val w=bounds.width().toFloat();val h=bounds.height().toFloat()
-        val rr=RectF(1.5f*density,3f*density,w-1.5f*density,h-1.5f*density)
+        val w=bounds.width().toFloat();val h=bounds.height().toFloat();val d=density
+        val outer=archPath(w,h,1.5f*d)
         p.style=Paint.Style.FILL
         p.shader=LinearGradient(0f,0f,0f,h,
-            if(active)0xff17665b.toInt() else 0xff0d304b.toInt(),
-            if(active)0xff0b3f3c.toInt() else 0xff071e33.toInt(),Shader.TileMode.CLAMP)
-        c.drawRoundRect(rr,13f*density,13f*density,p);p.shader=null
-        p.style=Paint.Style.STROKE;p.strokeWidth=(if(active)2f else .9f)*density
-        p.color=if(active)0xffffdd8f.toInt() else gold
-        c.drawRoundRect(rr,13f*density,13f*density,p)
-        p.color=0xb9dcb570.toInt();p.strokeWidth=.65f*density
-        val inset=5f*density
-        c.drawRoundRect(RectF(rr.left+inset,rr.top+inset,rr.right-inset,rr.bottom-inset),10f*density,10f*density,p)
-        // Gold Islamic arch and a small centred diamond at the top.
-        val cy=rr.top+8f*density
-        val arch=Path().apply{
-            moveTo(rr.left+9*density,cy+5*density)
-            cubicTo(rr.left+15*density,cy+4*density,w*.37f,cy+4*density,w*.5f,cy-3*density)
-            cubicTo(w*.63f,cy+4*density,rr.right-15*density,cy+4*density,rr.right-9*density,cy+5*density)
+            if(active)0xff1c6d62.toInt() else 0xff103a59.toInt(),
+            if(active)0xff0c4742.toInt() else 0xff071f35.toInt(),Shader.TileMode.CLAMP)
+        c.drawPath(outer,p);p.shader=null
+        p.style=Paint.Style.STROKE;p.strokeJoin=Paint.Join.ROUND
+        p.strokeWidth=(if(active)2.2f else 1.25f)*d;p.color=if(active)0xffffde91.toInt() else gold
+        c.drawPath(outer,p)
+        val inner=archPath(w,h,5.2f*d)
+        p.strokeWidth=.65f*d;p.color=0xbfe0bb76.toInt();c.drawPath(inner,p)
+        val cy=7.3f*d
+        p.style=Paint.Style.FILL;p.color=0xffffdb8c.toInt()
+        val diamond=Path().apply{moveTo(w*.5f,cy-3.2f*d);lineTo(w*.5f+3.2f*d,cy);lineTo(w*.5f,cy+3.2f*d);lineTo(w*.5f-3.2f*d,cy);close()}
+        c.drawPath(diamond,p)
+        if(active){
+            p.style=Paint.Style.STROKE;p.strokeWidth=1.1f*d;p.color=0x88ffe5a6.toInt()
+            c.drawPath(archPath(w,h,.3f*d),p)
         }
-        c.drawPath(arch,p)
-        val diamond=Path().apply{moveTo(w*.5f,cy-5*density);lineTo(w*.5f+3*density,cy-2*density);lineTo(w*.5f,cy+1*density);lineTo(w*.5f-3*density,cy-2*density);close()}
-        p.style=Paint.Style.FILL;p.color=0xffffdb8c.toInt();c.drawPath(diamond,p)
-        if(active){p.style=Paint.Style.STROKE;p.strokeWidth=1.6f*density;p.color=0x99ffe1a1.toInt();c.drawRoundRect(RectF(rr.left-1*density,rr.top-1*density,rr.right+1*density,rr.bottom+1*density),14*density,14*density,p)}
         p.style=Paint.Style.FILL
     }
     override fun setAlpha(alpha:Int){p.alpha=alpha}
