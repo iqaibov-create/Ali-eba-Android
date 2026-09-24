@@ -16,6 +16,8 @@ import kotlin.math.min
 class MosqueSceneView(c:Context,private val night:Boolean):View(c){
     private val photo=BitmapFactory.decodeResource(resources,if(night)R.drawable.mosque_night else R.drawable.mosque_day)
     private val p=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    // Keep the photo fully opaque. Star twinkle must never change the bitmap paint.
+    private val starPaint=Paint(Paint.ANTI_ALIAS_FLAG).apply {style=Paint.Style.FILL}
     private val stars=(0 until 30).map { i ->
         val x=((i*73+19)%97+1)/100f
         val y=((i*47+11)%58+3)/100f
@@ -26,6 +28,7 @@ class MosqueSceneView(c:Context,private val night:Boolean):View(c){
         if(w<=0f||h<=0f||photo.width<=0||photo.height<=0)return
 
         p.colorFilter=null
+        p.alpha=255
         canvas.drawColor(if(night)0xff14345e.toInt() else 0xff9bcfee.toInt())
 
         if(photo.height > photo.width){
@@ -55,9 +58,9 @@ class MosqueSceneView(c:Context,private val night:Boolean):View(c){
             val skyLimit=h*.42f
             stars.forEachIndexed { i,v ->
                 val opacity=(85+120*kotlin.math.sin(tm/1200.0+i*.87)).toInt().coerceIn(22,210)
-                p.color=Color.argb(opacity,255,248,219)
+                starPaint.color=Color.argb(opacity,255,248,219)
                 val x=v.first*w;val y=v.second*skyLimit
-                canvas.drawCircle(x,y,if(i%8==0)1.7f else 1.0f,p)
+                canvas.drawCircle(x,y,if(i%8==0)1.7f else 1.0f,starPaint)
             }
             postInvalidateDelayed(110L)
         }

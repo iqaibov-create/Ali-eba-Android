@@ -78,11 +78,17 @@ object PrayerClock {
                                     if(hm != null && hm.substring(0,2).toInt() <= 23) key to hm else null
                                 }.toMap()
                                 if(listOf("fajr","sunrise","dhuhr","maghrib").all { parsed.containsKey(it) }) {
+                                    // Clear optional fields from previous API responses before writing today's data.
                                     c.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit().apply {
+                                        fetchKeys.forEach { remove(it) }
                                         putString("date_key",dateKey(c))
                                         parsed.forEach { (k,v) -> putString(k,v) }
-                                    }.apply()
+                                    }.commit()
                                     scheduleToday(c,parsed)
+                                    // An old retry must not wake the phone once today's data is available.
+                                    c.getSystemService(AlarmManager::class.java).cancel(
+                                        pending(c,7801,Intent(c,PrayerRefreshReceiver::class.java))
+                                    )
                                     ok=true
                                 }
                             }
@@ -90,7 +96,13 @@ object PrayerClock {
                     } finally { conn.disconnect() }
                 }
             } catch (_: Exception) { }
-            if(!ok && times(c).isEmpty()) scheduleRetry(c)
+            if(!ok) {
+                // A service outage or a late midnight refresh must recover while the app is closed.
+                // Keep today's valid cached alarms; retry the API later for fresh data.
+                val cached=times(c)
+                if(cached.isNotEmpty()) scheduleToday(c,cached)
+                scheduleRetry(c)
+            }
             if(done != null) {
                 val main=android.os.Handler(android.os.Looper.getMainLooper())
                 main.post { done(ok) }
@@ -99,7 +111,7 @@ object PrayerClock {
     }
     private fun pending(c:Context,code:Int, intent:Intent):PendingIntent = PendingIntent.getBroadcast(c,code,intent,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     fun scheduleToday(c:Context, t: Map<String,String> = times(c)) {
-        if(t.isEmpty()) { scheduleRefresh(c); return }
+        if(t.isEmpty()) { scheduleRefresh(c); scheduleRetry(c); return }
         val am=c.getSystemService(AlarmManager::class.java)
         val now=System.currentTimeMillis()
         for (i in alarmKeys.indices) {
@@ -107,17 +119,27 @@ object PrayerClock {
             val p=pending(c,7000+i,Intent(c,AzanReceiver::class.java).putExtra("prayer",name).putExtra("date",today()))
             am.cancel(p)
             if(!AzanPrefs.isPrayerEnabled(c,name)) continue
-            val x=t[alarmKeys[i]]?.split(':') ?: continue
-            if(x.size!=2) continue
-            val at=Calendar.getInstance().apply {set(Calendar.HOUR_OF_DAY,x[0].toInt());set(Calendar.MINUTE,x[1].toInt());set(Calendar.SECOND,0);set(Calendar.MILLISECOND,0)}.timeInMillis
-            if(at<=now) continue // never schedule yesterday's time for tomorrow
-            if(Build.VERSION.SDK_INT<31 || am.canScheduleExactAlarms()) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,at,p)
-            else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,at,p)
+            val hm=Regex("^([01]\\d|2[0-3]):([0-5]\\d)$").matchEntire(t[alarmKeys[i]] ?: "") ?: continue
+            val at=Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY,hm.groupValues[1].toInt())
+                set(Calendar.MINUTE,hm.groupValues[2].toInt())
+                set(Calendar.SECOND,0);set(Calendar.MILLISECOND,0)
+            }.timeInMillis
+            if(at<=now) continue // don't replay a past prayer on app launch
+            try {
+                if(Build.VERSION.SDK_INT<31 || am.canScheduleExactAlarms())
+                    am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,at,p)
+                else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,at,p)
+            } catch (_:SecurityException) {
+                // The exact-alarm permission can be revoked between checking and scheduling.
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,at,p)
+            }
         }
         scheduleRefresh(c)
     }
     private fun scheduleRetry(c:Context){
-        val at=System.currentTimeMillis()+60*60*1000L
+        // Re-check while the app is closed. A single failed fetch must not disable tomorrow's azan.
+        val at=System.currentTimeMillis()+30*60*1000L
         val am=c.getSystemService(AlarmManager::class.java)
         val p=pending(c,7801,Intent(c,PrayerRefreshReceiver::class.java))
         am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,at,p)
@@ -127,7 +149,12 @@ object PrayerClock {
         val am=c.getSystemService(AlarmManager::class.java)
         val p=pending(c,7800,Intent(c,PrayerRefreshReceiver::class.java))
         am.cancel(p)
-        if(Build.VERSION.SDK_INT<31 || am.canScheduleExactAlarms()) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,calendar.timeInMillis,p)
-        else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,calendar.timeInMillis,p)
+        try {
+            if(Build.VERSION.SDK_INT<31 || am.canScheduleExactAlarms())
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,calendar.timeInMillis,p)
+            else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,calendar.timeInMillis,p)
+        } catch (_:SecurityException) {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,calendar.timeInMillis,p)
+        }
     }
 }
