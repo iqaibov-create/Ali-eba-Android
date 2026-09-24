@@ -58,7 +58,7 @@ object PrayerClock {
                     val tz=java.net.URLEncoder.encode(TimeZone.getDefault().id, "UTF-8")
                     val url=URL("https://alieba.ge/api/prayer-times.php?lat=$lat&lng=$lon&tz=$tz")
                     val conn=(url.openConnection() as HttpURLConnection).apply {
-                        connectTimeout=8000;readTimeout=8000;setRequestProperty("Accept", "application/json")
+                        connectTimeout=3500;readTimeout=3500;setRequestProperty("Accept", "application/json")
                     }
                     try {
                         if(conn.responseCode==200) {
@@ -118,7 +118,8 @@ object PrayerClock {
             val name=alarmNames[i]
             val p=pending(c,7000+i,Intent(c,AzanReceiver::class.java).putExtra("prayer",name).putExtra("date",today()))
             am.cancel(p)
-            if(!AzanPrefs.isPrayerEnabled(c,name)) continue
+            if(!c.getSharedPreferences("alieba_setup",Context.MODE_PRIVATE).getBoolean("notifications",false)
+                || !AzanPrefs.isPrayerEnabled(c,name)) continue
             val hm=Regex("^([01]\\d|2[0-3]):([0-5]\\d)$").matchEntire(t[alarmKeys[i]] ?: "") ?: continue
             val at=Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY,hm.groupValues[1].toInt())

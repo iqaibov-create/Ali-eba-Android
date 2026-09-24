@@ -622,8 +622,13 @@ root.addView(TextView(this).apply {
             (Build.VERSION.SDK_INT < 33 ||
                 checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
                     android.content.pm.PackageManager.PERMISSION_GRANTED)
-        listOf("Fəcr", "Zöhr", "Əsr", "Məğrib", "İşa").forEach {
-            AzanPrefs.setPrayerEnabled(this, it, allowed)
+        // Dismissing Android's notification permission must not permanently switch
+        // off all five individual prayer alarms. The global switch controls opt-in.
+        if (allowed) {
+            listOf("Fəcr", "Zöhr", "Əsr", "Məğrib", "İşa").forEach { prayer ->
+                val prefs=getSharedPreferences("azan_settings", MODE_PRIVATE)
+                if (!prefs.contains("prayer_enabled_$prayer")) AzanPrefs.setPrayerEnabled(this, prayer, true)
+            }
         }
         getSharedPreferences("alieba_setup", MODE_PRIVATE).edit()
             .putBoolean("notifications", allowed)
@@ -658,7 +663,7 @@ root.addView(TextView(this).apply {
         }
         val scroll=ScrollView(this).apply {isFillViewport=true;clipToPadding=false;setPadding(0,0,0,dp(108))}
         val body=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL}
-        val heroHeight=(resources.displayMetrics.heightPixels * .49f).toInt().coerceIn(dp(355),dp(450))
+        val heroHeight=(resources.displayMetrics.heightPixels * .535f).toInt().coerceIn(dp(400),dp(480))
         val hero=FrameLayout(this)
         hero.addView(MosqueSceneView(this,night),FrameLayout.LayoutParams(-1,-1))
         hero.addView(View(this).apply {background=AliebaHeroFrameDrawable(resources.displayMetrics.density)},FrameLayout.LayoutParams(-1,-1))
@@ -707,15 +712,15 @@ root.addView(TextView(this).apply {
             topMargin=dp(67);leftMargin=dp(12);rightMargin=dp(12)
         })
         val date=label(java.text.SimpleDateFormat("d MMMM, EEEE",java.util.Locale.forLanguageTag("az")).format(java.util.Date()),12f,Color.WHITE,true).apply {setShadowLayer(4f,0f,2f,0xbb001c20.toInt());setPadding(dp(8),dp(3),dp(8),dp(3))}
-        hero.addView(date,FrameLayout.LayoutParams(-2,dp(30),Gravity.END or Gravity.BOTTOM).apply {rightMargin=dp(12);bottomMargin=dp(94)})
+        hero.addView(date,FrameLayout.LayoutParams(-2,dp(30),Gravity.END or Gravity.BOTTOM).apply {rightMargin=dp(12);bottomMargin=dp(123)})
         // S-shaped white boundary. Timings float ABOVE the boundary like the reference.
-        hero.addView(View(this).apply {background=HeroWaveDrawable(0xfffffaef.toInt(),dp(23).toFloat())},FrameLayout.LayoutParams(-1,dp(39),Gravity.BOTTOM))
-        hero.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(81),Gravity.BOTTOM).apply {bottomMargin=dp(20)})
+        hero.addView(View(this).apply {background=AliebaHeroDividerDrawable(resources.displayMetrics.density)},FrameLayout.LayoutParams(-1,dp(35),Gravity.BOTTOM))
+        hero.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(94),Gravity.BOTTOM).apply {bottomMargin=dp(23)})
         body.addView(hero,LinearLayout.LayoutParams(-1,heroHeight))
         val sections=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL
             background=AliebaPatternDrawable(resources.displayMetrics.density)
-            setPadding(dp(11),dp(9),dp(11),dp(18))
+            setPadding(dp(9),dp(13),dp(9),dp(22))
         }
         val icons=android.widget.GridLayout(this).apply {
             columnCount=3
@@ -747,17 +752,24 @@ root.addView(TextView(this).apply {
                 "Yeniliklər"->R.drawable.alieba_ornament_news
                 "Mərsiyələr"->R.drawable.alieba_ornament_mersiye
                 "Hədislər"->R.drawable.alieba_ornament_hadis
+                "Kitabxana"->R.drawable.alieba_ornament_library
+                "Məsləhət"->R.drawable.alieba_ornament_advice
+                "Kömək et"->R.drawable.alieba_ornament_donate
+                "Yadda saxla"->R.drawable.alieba_ornament_saved
+                "Zikr və təsbeh"->R.drawable.alieba_ornament_zikr
+                "Qiblə kompası"->R.drawable.alieba_ornament_qibla
+                "Ayarlar"->R.drawable.alieba_ornament_settings
                 else->0
             }
             cell.addView(ImageView(this).apply {
-                if(ornateIcon!=0){setImageResource(ornateIcon);scaleType=ImageView.ScaleType.FIT_CENTER}
+                if(ornateIcon!=0){setImageResource(ornateIcon);scaleType=ImageView.ScaleType.FIT_CENTER;setPadding(dp(2),dp(2),dp(2),dp(2))}
                 else {setImageResource(icon);setColorFilter(0xff95702f.toInt());background=AliebaGoldTileDrawable(resources.displayMetrics.density);setPadding(dp(20),dp(20),dp(20),dp(20))}
                 contentDescription=title
-            },LinearLayout.LayoutParams(dp(82),dp(82)))
-            cell.addView(label(title,12f,0xff453728.toInt()).apply {typeface=Typeface.create("serif",Typeface.NORMAL)},LinearLayout.LayoutParams(-1,dp(25)))
+            },LinearLayout.LayoutParams(dp(94),dp(94)).apply {topMargin=dp(3)})
+            cell.addView(label(title,12f,0xff453728.toInt()).apply {typeface=Typeface.create("serif",Typeface.NORMAL)},LinearLayout.LayoutParams(-1,dp(27)))
             cell.setOnClickListener {when(title) {"Ayarlar"->showSettings();"Yeniliklər"->showNews();"Məsləhət"->startActivity(Intent(this,NativeAdviceActivity::class.java));"Kömək et"->startActivity(Intent(this,NativeDonateActivity::class.java));"Zikr və təsbeh"->startActivity(Intent(this,ZikrActivity::class.java));"Qiblə kompası"->startActivity(Intent(this,QiblaActivity::class.java));else->openWebsiteSection(title)}}
             icons.addView(cell,android.widget.GridLayout.LayoutParams().apply {
-                width=0;height=dp(126)
+                width=0;height=dp(138)
                 columnSpec=android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED,1f)
                 setMargins(dp(1),dp(4),dp(1),dp(4))
             })
@@ -782,10 +794,11 @@ root.addView(TextView(this).apply {
             val time=t[key] ?: "--:--"
             val selected=active==key && time!="--:--"
             val background=AliebaPrayerCardDrawable(resources.displayMetrics.density,selected)
-            val card=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL;this.background=background;setPadding(0,dp(7),0,0);elevation=if(selected)dp(5).toFloat() else 0f;setOnClickListener{prayerSettings()} }
-            card.addView(label(name,8f,if(selected)0xffffe8a3.toInt() else Color.WHITE,selected).apply {setLines(2);setShadowLayer(if(selected)5f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(32)))
-            card.addView(label(time,10f,if(selected)0xffffe09b.toInt() else Color.WHITE,true).apply {setShadowLayer(if(selected)6f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(19)))
-            row.addView(card,LinearLayout.LayoutParams(0,if(selected)dp(77) else dp(71),1f).apply {setMargins(dp(1),0,dp(1),0)})
+            val card=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL;this.background=background;setPadding(0,dp(9),0,dp(4));elevation=if(selected)dp(4).toFloat() else 0f;setOnClickListener{prayerSettings()} }
+            card.addView(AliebaPrayerSymbolView(this,key),LinearLayout.LayoutParams(dp(19),dp(19)))
+            card.addView(label(name,8f,if(selected)0xffffe8a3.toInt() else Color.WHITE,selected).apply {setLines(2);setShadowLayer(if(selected)5f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(31)))
+            card.addView(label(time,10f,if(selected)0xffffe09b.toInt() else Color.WHITE,true).apply {setShadowLayer(if(selected)6f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(21)))
+            row.addView(card,LinearLayout.LayoutParams(0,if(selected)dp(89) else dp(83),1f).apply {setMargins(dp(1),0,dp(1),0)})
         }
         return row
     }
@@ -946,7 +959,16 @@ root.addView(TextView(this).apply {
         val box=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;setPadding(dp(18),dp(10),dp(18),dp(10))}
         val status=label("Namaz vaxtları: ${if(PrayerClock.times(this).isEmpty()) "API-dən yüklənməyib" else "alieba.ge API"}",13f,ink)
         box.addView(status)
-        val global=Switch(this).apply {text="Azan bildirişləri";isChecked=p.getBoolean("notifications",false);setOnCheckedChangeListener { _,b ->p.edit().putBoolean("notifications",b).apply();PrayerClock.scheduleToday(this@MainActivity)}}
+        val global=Switch(this).apply {text="Azan bildirişləri";isChecked=p.getBoolean("notifications",false);setOnCheckedChangeListener { _,b ->
+            p.edit().putBoolean("notifications",b).apply()
+            if (b && listOf("Fəcr","Zöhr","Əsr","Məğrib","İşa").none { AzanPrefs.isPrayerEnabled(this@MainActivity,it) }) {
+                // Migrate users whose prayers were all disabled by the old onboarding flow.
+                listOf("Fəcr","Zöhr","Əsr","Məğrib","İşa").forEach { AzanPrefs.setPrayerEnabled(this@MainActivity,it,true) }
+                Toast.makeText(this@MainActivity,"Azan vaxtları aktivləşdirildi",Toast.LENGTH_SHORT).show()
+            }
+            PrayerClock.scheduleToday(this@MainActivity)
+            if (b) PrayerClock.fetchAndSchedule(this@MainActivity)
+        }}
         box.addView(global)
         listOf("Fəcr","Zöhr","Əsr","Məğrib","İşa").forEach { name ->
             val sw=Switch(this).apply { text="$name azanı";isChecked=AzanPrefs.isPrayerEnabled(this@MainActivity,name);setOnCheckedChangeListener { _,b ->AzanPrefs.setPrayerEnabled(this@MainActivity,name,b);PrayerClock.scheduleToday(this@MainActivity)}}

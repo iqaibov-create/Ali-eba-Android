@@ -34,9 +34,9 @@ class MosqueSceneView(c:Context,private val night:Boolean):View(c){
         if(photo.height > photo.width){
             // Portrait image: crop a controlled vertical window so the mosque fits naturally.
             val viewRatio=w/h
-            val cropH=(photo.width / viewRatio).toInt().coerceAtMost(photo.height)
-            // Align the crop to the BOTTOM: the mosque is in the lower part of both photos.
-            // Starting from the sky hides the building behind the prayer time cards.
+            val cropH=((photo.width / viewRatio)*1.12f).toInt().coerceAtMost(photo.height)
+            // A slightly wider vertical framing reveals more of the user's ORIGINAL mosque image.
+            // Keep the ground in view; never paint or dim the picture for the star effect.
             val srcTop=(photo.height-cropH).coerceAtLeast(0)
             val src=Rect(0,srcTop,photo.width,srcTop+cropH)
             canvas.drawBitmap(photo,src,RectF(0f,0f,w,h),p)
@@ -67,30 +67,37 @@ class MosqueSceneView(c:Context,private val night:Boolean):View(c){
     }
 }
 
-/** Nearly white mint with fine translucent geometric motifs; avoids a heavy green screen. */
+/** Warm ivory arabesque paper shared by home and all inner screens. */
 class AliebaPatternDrawable(private val density:Float):Drawable(){
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
     override fun draw(c:Canvas){
         val w=bounds.width().toFloat();val h=bounds.height().toFloat()
-        p.style=Paint.Style.FILL;p.color=0xfffffaef.toInt()
+        p.style=Paint.Style.FILL;p.color=0xfffff9ed.toInt()
         c.drawRect(0f,0f,w,h,p)
-        val step=90f*density
-        p.style=Paint.Style.STROKE;p.strokeWidth=.8f*density;p.color=0x17ad8d55
+        val step=102f*density
+        p.style=Paint.Style.STROKE;p.strokeWidth=.73f*density
         var y=-step
         while(y<h+step){
             var x=-step
             while(x<w+step){
-                val r=step*.32f
-                val petal=Path().apply {
+                val r=step*.28f
+                p.color=0x1fb38c54
+                // Small four-petal arabesque with a pointed arch and restrained gold detailing.
+                val motif=Path().apply {
                     moveTo(x,y-r)
-                    cubicTo(x+r*.48f,y-r*.52f,x+r*.48f,y+r*.52f,x,y+r)
-                    cubicTo(x-r*.48f,y+r*.52f,x-r*.48f,y-r*.52f,x,y-r)
+                    cubicTo(x+r*.62f,y-r*.45f,x+r*.62f,y+r*.45f,x,y+r)
+                    cubicTo(x-r*.62f,y+r*.45f,x-r*.62f,y-r*.45f,x,y-r)
+                    close()
+                    moveTo(x-r,y)
+                    cubicTo(x-r*.45f,y-r*.62f,x+r*.45f,y-r*.62f,x+r,y)
+                    cubicTo(x+r*.45f,y+r*.62f,x-r*.45f,y+r*.62f,x-r,y)
+                    close()
                 }
-                c.drawPath(petal,p)
-                c.drawCircle(x,y,r*.32f,p)
-                c.drawLine(x-r*.65f,y,x+r*.65f,y,p)
-                c.drawLine(x,y-r*.65f,x,y+r*.65f,p)
-                c.drawCircle(x+r*.72f,y+r*.72f,r*.15f,p)
+                c.drawPath(motif,p)
+                p.color=0x12b68f57
+                c.drawCircle(x,y,r*.38f,p)
+                c.drawCircle(x+r*.92f,y+r*.92f,r*.17f,p)
+                c.drawCircle(x-r*.92f,y-r*.92f,r*.17f,p)
                 x+=step
             }
             y+=step
@@ -100,6 +107,94 @@ class AliebaPatternDrawable(private val density:Float):Drawable(){
     override fun setAlpha(alpha:Int){p.alpha=alpha}
     override fun setColorFilter(filter:android.graphics.ColorFilter?){p.colorFilter=filter}
     override fun getOpacity()=android.graphics.PixelFormat.OPAQUE
+}
+
+/** A gold-trimmed Islamic arch at the bottom of the mosque, NOT an S-shaped wave. */
+class AliebaHeroDividerDrawable(private val density:Float):Drawable(){
+    private val p=Paint(Paint.ANTI_ALIAS_FLAG)
+    override fun draw(c:Canvas){
+        val w=bounds.width().toFloat();val h=bounds.height().toFloat()
+        val d=density
+        val edge=Path().apply {
+            moveTo(0f,h*.32f)
+            lineTo(w*.38f,h*.32f)
+            cubicTo(w*.44f,h*.32f,w*.46f,h*.14f,w*.5f,h*.07f)
+            cubicTo(w*.54f,h*.14f,w*.56f,h*.32f,w*.62f,h*.32f)
+            lineTo(w,h*.32f)
+            lineTo(w,h);lineTo(0f,h);close()
+        }
+        p.style=Paint.Style.FILL;p.color=0xfffff9ed.toInt();c.drawPath(edge,p)
+        p.style=Paint.Style.STROKE;p.strokeWidth=1.35f*d;p.color=0xffd6ac60.toInt()
+        val top=Path().apply{
+            moveTo(0f,h*.32f);lineTo(w*.38f,h*.32f)
+            cubicTo(w*.44f,h*.32f,w*.46f,h*.14f,w*.5f,h*.07f)
+            cubicTo(w*.54f,h*.14f,w*.56f,h*.32f,w*.62f,h*.32f)
+            lineTo(w,h*.32f)
+        }
+        c.drawPath(top,p)
+        p.strokeWidth=.65f*d;p.color=0x88b98a48.toInt()
+        c.save();c.translate(0f,3.6f*d);c.drawPath(top,p);c.restore()
+        p.style=Paint.Style.FILL;p.color=0xffc99b49.toInt()
+        val cx=w*.5f;val cy=h*.48f
+        val gem=Path().apply{moveTo(cx,cy-6*d);lineTo(cx+5*d,cy);lineTo(cx,cy+6*d);lineTo(cx-5*d,cy);close()}
+        c.drawPath(gem,p)
+        p.color=0xfffbf1d7.toInt();c.drawCircle(cx,cy,1.7f*d,p)
+        p.style=Paint.Style.STROKE;p.strokeWidth=.65f*d;p.color=0x66bc9656
+        val spacing=23f*d
+        var x=12f*d
+        while(x<w){
+            if(kotlin.math.abs(x-cx)>12*d){
+                val yy=h*.56f
+                c.drawCircle(x,yy,1.65f*d,p)
+                c.drawLine(x-5*d,yy,x-2.7f*d,yy,p)
+                c.drawLine(x+2.7f*d,yy,x+5*d,yy,p)
+            }
+            x+=spacing
+        }
+        p.style=Paint.Style.FILL
+    }
+    override fun setAlpha(alpha:Int){p.alpha=alpha}
+    override fun setColorFilter(filter:android.graphics.ColorFilter?){p.colorFilter=filter}
+    override fun getOpacity()=android.graphics.PixelFormat.TRANSLUCENT
+}
+
+/** Time-specific vector icon: sun, horizon, moon and stars; no static/faked times. */
+class AliebaPrayerSymbolView(c:Context,private val key:String):View(c){
+    private val p=Paint(Paint.ANTI_ALIAS_FLAG)
+    override fun onDraw(c:Canvas){
+        super.onDraw(c)
+        val d=resources.displayMetrics.density
+        val cx=width*.5f;val cy=height*.5f;val r=kotlin.math.min(width,height)*.19f
+        p.color=0xffffdb8c.toInt();p.style=Paint.Style.STROKE;p.strokeWidth=1.45f*d
+        p.strokeCap=Paint.Cap.ROUND
+        fun line(x1:Float,y1:Float,x2:Float,y2:Float){c.drawLine(x1,y1,x2,y2,p)}
+        fun sun(x:Float,y:Float,rad:Float){
+            c.drawCircle(x,y,rad,p)
+            for(i in 0..7){
+                val a=i*Math.PI/4.0
+                val dx=kotlin.math.cos(a).toFloat();val dy=kotlin.math.sin(a).toFloat()
+                line(x+dx*rad*1.5f,y+dy*rad*1.5f,x+dx*rad*1.95f,y+dy*rad*1.95f)
+            }
+        }
+        fun moon(x:Float,y:Float,rad:Float){
+            p.style=Paint.Style.FILL
+            val path=Path().apply{
+                fillType=Path.FillType.EVEN_ODD
+                addCircle(x,y,rad,Path.Direction.CW)
+                addCircle(x+rad*.55f,y-rad*.24f,rad*.89f,Path.Direction.CW)
+            }
+            c.drawPath(path,p);p.style=Paint.Style.STROKE
+        }
+        when(key){
+            "fajr"->{moon(cx-r*.5f,cy-r*.12f,r*.78f);line(cx-r*1.8f,cy+r*1.2f,cx+r*1.8f,cy+r*1.2f);c.drawCircle(cx+r*1.3f,cy-r*1.2f,r*.13f,p)}
+            "sunrise"->{sun(cx,cy+r*.15f,r*.57f);line(cx-r*1.85f,cy+r*.95f,cx+r*1.85f,cy+r*.95f);line(cx,cy-r*1.4f,cx,cy-r*.78f)}
+            "dhuhr"->sun(cx,cy,r*.8f)
+            "sunset"->{sun(cx,cy+r*.4f,r*.55f);line(cx-r*1.8f,cy+r*.93f,cx+r*1.8f,cy+r*.93f);line(cx,cy-r*1.2f,cx,cy-r*.65f)}
+            "maghrib"->{moon(cx-r*.22f,cy,r*.91f);c.drawCircle(cx+r*1.3f,cy-r*1.15f,r*.16f,p)}
+            else->{moon(cx-r*.18f,cy,r*.94f);val x=cx+r*1.1f;val y=cy-r*1.1f;line(x-r*.31f,y,x+r*.31f,y);line(x,y-r*.31f,x,y+r*.31f)}
+        }
+        p.style=Paint.Style.FILL
+    }
 }
 
 /** Ornamental native drawing; actual prayer times remain dynamic, never baked into an image. */
