@@ -6,38 +6,74 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
-    <application android:theme="@style/Theme.Alieba" android:label="Alieba" android:icon="@drawable/alieba_gold_brand" android:roundIcon="@drawable/alieba_gold_brand" android:allowBackup="true" android:usesCleartextTraffic="false">
+
+    <application
+        android:theme="@style/Theme.Alieba"
+        android:label="Alieba"
+        android:icon="@drawable/alieba_gold_brand"
+        android:roundIcon="@drawable/alieba_gold_brand"
+        android:allowBackup="true"
+        android:usesCleartextTraffic="false">
+
         <activity android:name=".MainActivity" android:screenOrientation="portrait" android:exported="true">
-            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
         </activity>
-        <provider android:name="androidx.core.content.FileProvider"
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.updateprovider"
-            android:exported="false" android:grantUriPermissions="true">
-            <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/alieba_update_paths" />
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/alieba_update_paths"/>
         </provider>
+
         <activity android:name=".ZikrActivity" android:exported="false"/>
         <activity android:name=".QiblaActivity" android:exported="false"/>
         <activity android:name=".NativeContentActivity" android:exported="false"/>
         <activity android:name=".NativeSettingsActivity" android:exported="false"/>
         <activity android:name=".NativeAdviceActivity" android:exported="false" android:windowSoftInputMode="adjustResize"/>
         <activity android:name=".NativeDonateActivity" android:exported="false"/>
-        <service android:name=".AzanPlaybackService" android:foregroundServiceType="mediaPlayback" android:exported="false"/>
-        <service android:name=".NewsMessagingService" android:exported="false"><intent-filter><action android:name="com.google.firebase.MESSAGING_EVENT"/></intent-filter></service>
+
+        <service
+            android:name=".AzanPlaybackService"
+            android:foregroundServiceType="mediaPlayback"
+            android:stopWithTask="false"
+            android:exported="false"/>
+
+        <service android:name=".NewsMessagingService" android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+            </intent-filter>
+        </service>
+
         <receiver android:name=".AzanReceiver" android:exported="false"/>
         <receiver android:name=".PrayerRefreshReceiver" android:exported="false"/>
+
         <receiver android:name=".BootReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
                 <action android:name="android.intent.action.TIMEZONE_CHANGED"/>
                 <action android:name="android.intent.action.TIME_SET"/>
+                <action android:name="android.intent.action.DATE_CHANGED"/>
                 <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"/>
             </intent-filter>
         </receiver>
-        <receiver android:name=".PrayerWidget" android:exported="true"><intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE"/></intent-filter><meta-data android:name="android.appwidget.provider" android:resource="@xml/prayer_widget_info"/></receiver>
+
+        <receiver android:name=".PrayerWidget" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/prayer_widget_info"/>
+        </receiver>
     </application>
 </manifest>
