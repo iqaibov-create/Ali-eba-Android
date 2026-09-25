@@ -31,9 +31,6 @@ class MosqueSceneView(c:Context,private val night:Boolean):View(c){
         p.alpha=255
         canvas.drawColor(if(night)0xff14345e.toInt() else 0xff9bcfee.toInt())
 
-        // True CENTER_CROP math: preserves aspect ratio and fills the hero without
-        // horizontal/vertical squashing. Bias the crop slightly upward so the fence,
-        // entrance and lower part of the mosque remain visible.
         val srcRatio=photo.width.toFloat()/photo.height.toFloat()
         val dstRatio=w/h
         val src:Rect
@@ -64,7 +61,6 @@ class MosqueSceneView(c:Context,private val night:Boolean):View(c){
     }
 }
 
-/** Warm ivory arabesque paper shared by home and all inner screens. */
 class AliebaPatternDrawable(private val density:Float):Drawable(){
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
     override fun draw(c:Canvas){
@@ -103,11 +99,10 @@ class AliebaPatternDrawable(private val density:Float):Drawable(){
     override fun getOpacity()=android.graphics.PixelFormat.OPAQUE
 }
 
-/** A gold-trimmed Islamic arch at the bottom of the mosque, NOT an S-shaped wave. */
 class AliebaHeroDividerDrawable(private val density:Float):Drawable(){
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
     override fun draw(c:Canvas){
-        val w=bounds.width().toFloat();val h=bounds.height().toFloat();val d=density
+        val w=bounds.width().toFloat();val d=density
         val y=7f*d
         p.style=Paint.Style.STROKE;p.strokeCap=Paint.Cap.ROUND
         p.color=0xffe6c27a.toInt();p.strokeWidth=2.2f*d
@@ -138,8 +133,6 @@ class AliebaHeroDividerDrawable(private val density:Float):Drawable(){
     override fun getOpacity()=android.graphics.PixelFormat.TRANSLUCENT
 }
 
-/** V19.4: decorative pedestal UNDER (not on top of) the real mosque photograph.
- * Its pointed gold-ivory bottom mirrors the approved reference without hiding the building. */
 class AliebaPrayerPanelDrawable(private val density:Float):Drawable(){
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
     override fun draw(c:Canvas){
@@ -190,7 +183,6 @@ class AliebaPrayerPanelDrawable(private val density:Float):Drawable(){
     override fun getOpacity()=android.graphics.PixelFormat.TRANSLUCENT
 }
 
-/** Time-specific vector icon: sun, horizon, moon and stars; no static/faked times. */
 class AliebaPrayerSymbolView(c:Context,private val key:String):View(c){
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
     override fun onDraw(c:Canvas){
@@ -229,7 +221,6 @@ class AliebaPrayerSymbolView(c:Context,private val key:String):View(c){
     }
 }
 
-/** Ornamental native drawing; actual prayer times remain dynamic, never baked into an image. */
 class AliebaPrayerCardDrawable(private val density:Float,private val active:Boolean):Drawable(){
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
     private val gold=0xffdfb66c.toInt()
@@ -277,7 +268,6 @@ class AliebaPrayerCardDrawable(private val density:Float,private val active:Bool
     override fun getOpacity()=android.graphics.PixelFormat.TRANSLUCENT
 }
 
-/** A hairline gold frame only: never covers/dims the original mosque photograph. */
 class AliebaHeroFrameDrawable(private val density:Float):Drawable(){
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
     override fun draw(c:Canvas){
@@ -294,7 +284,6 @@ class AliebaHeroFrameDrawable(private val density:Float):Drawable(){
     override fun getOpacity()=android.graphics.PixelFormat.TRANSLUCENT
 }
 
-/** Shared ivory/gold footer wave on the home screen and EVERY inner activity. */
 class AliebaIvoryWaveDrawable(private val density:Float):Drawable(){
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
     override fun draw(c:Canvas){
@@ -348,7 +337,6 @@ object AliebaBottomNav {
     }
     fun make(activity:Activity,section:String):View {
         val c:Context=activity
-        val accent=tintFor(section)
         fun open(to:String){
             when(to){
                 "home"->{
@@ -374,34 +362,49 @@ object AliebaBottomNav {
             clipChildren=false;clipToPadding=false
         }
         val line=LinearLayout(c).apply {
-            orientation=LinearLayout.HORIZONTAL;gravity=Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-            setPadding(dp(c,6),dp(c,22),dp(c,6),dp(c,6))
+            orientation=LinearLayout.HORIZONTAL
+            gravity=Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            setPadding(0,dp(c,22),0,dp(c,6))
             clipChildren=false
         }
-        fun cell(title:String,icon:Int,to:String){
+
+        fun cell(title:String,icon:Int,to:String):View {
             val selected=section==to
-            val v=LinearLayout(c).apply {
-                orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER
+            return LinearLayout(c).apply {
+                orientation=LinearLayout.VERTICAL
+                gravity=Gravity.CENTER
+                setPadding(0,0,0,0)
                 setOnClickListener{open(to)}
+
+                addView(ImageView(c).apply {
+                    setImageResource(icon)
+                    scaleType=ImageView.ScaleType.CENTER_INSIDE
+                    setColorFilter(if(selected)0xff146c7e.toInt() else 0xff81683f.toInt())
+                },LinearLayout.LayoutParams(dp(c,22),dp(c,22)).apply {
+                    gravity=Gravity.CENTER_HORIZONTAL
+                })
+
+                addView(TextView(c).apply {
+                    text=title
+                    textSize=9.5f
+                    gravity=Gravity.CENTER
+                    setTextColor(if(selected)0xff195f74.toInt() else 0xff584736.toInt())
+                    isSingleLine=true
+                    includeFontPadding=false
+                    setPadding(0,dp(c,4),0,0)
+                },LinearLayout.LayoutParams(-1,dp(c,20)))
             }
-            v.addView(ImageView(c).apply {
-                setImageResource(icon)
-                setColorFilter(if(selected)0xff146c7e.toInt() else 0xff81683f.toInt())
-            },LinearLayout.LayoutParams(dp(c,22),dp(c,22)))
-            v.addView(TextView(c).apply {
-                text=title;textSize=9.5f;gravity=Gravity.CENTER
-                setTextColor(if(selected)0xff195f74.toInt() else 0xff584736.toInt())
-                isSingleLine=true
-                setPadding(0,dp(c,3),0,0)
-            },LinearLayout.LayoutParams(-1,dp(c,20)))
-            line.addView(v,LinearLayout.LayoutParams(0,dp(c,55),1f))
         }
-        cell("Ana səhifə",R.drawable.ic_home,"home")
-        cell("Yadda saxla",R.drawable.ic_heart,"saved")
-        line.addView(View(c),LinearLayout.LayoutParams(dp(c,70),dp(c,48)))
-        cell("Yeniliklər",R.drawable.ic_calendar,"news")
-        cell("Kömək et",R.drawable.ic_heart,"donate")
+
+        // Five equal columns = 10/30/50/70/90% centres on every screen width.
+        line.addView(cell("Ana səhifə",R.drawable.ic_home,"home"),LinearLayout.LayoutParams(0,dp(c,55),1f))
+        line.addView(cell("Yadda saxla",R.drawable.ic_heart,"saved"),LinearLayout.LayoutParams(0,dp(c,55),1f))
+        line.addView(View(c),LinearLayout.LayoutParams(0,dp(c,55),1f))
+        line.addView(cell("Yeniliklər",R.drawable.ic_calendar,"news"),LinearLayout.LayoutParams(0,dp(c,55),1f))
+        line.addView(cell("Kömək et",R.drawable.ic_heart,"donate"),LinearLayout.LayoutParams(0,dp(c,55),1f))
+
         frame.addView(line,FrameLayout.LayoutParams(-1,-1))
+
         val center=FrameLayout(c).apply {
             elevation=dp(c,4).toFloat()
             setOnClickListener{open("ai")}
@@ -411,7 +414,7 @@ object AliebaBottomNav {
             scaleType=ImageView.ScaleType.FIT_CENTER
             contentDescription="Alieba köməkçi"
         },FrameLayout.LayoutParams(-1,-1))
-        frame.addView(center,FrameLayout.LayoutParams(dp(c,76),dp(c,76),Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply {topMargin=dp(c,0)})
+        frame.addView(center,FrameLayout.LayoutParams(dp(c,76),dp(c,76),Gravity.TOP or Gravity.CENTER_HORIZONTAL))
         return frame
     }
 }

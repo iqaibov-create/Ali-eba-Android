@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -16,11 +17,11 @@ import java.util.TimeZone
 /**
  * Prayer alarm scheduler.
  *
- * V19.7:
- * - uses AlarmClockInfo when exact alarms are available so Doze / locked screen cannot defer azan;
- * - keeps a second allow-while-idle fallback alarm;
- * - recreates alarms after reboot, date/time/timezone and app updates;
- * - never replays a prayer that is already in the past when the app is opened.
+ * V19.9:
+ * - finds TODAY inside API day arrays instead of blindly taking element 0;
+ * - accepts common server date formats around midnight;
+ * - retries quickly if the server has not switched to the new day yet;
+ * - keeps V19.7 locked-screen/background azan alarm behavior.
  */
 object PrayerClock {
     private const val PREF = "alieba_prayer_clock"
@@ -51,6 +52,76 @@ object PrayerClock {
     private fun today(): String =
         SimpleDateFormat("yyyy-MM-dd", Locale.US).format(java.util.Date())
 
+    private fun todayParts(): Triple<Int, Int, Int> {
+        val c = Calendar.getInstance()
+        return Triple(
+            c.get(Calendar.YEAR),
+            c.get(Calendar.MONTH) + 1,
+            c.get(Calendar.DAY_OF_MONTH)
+        )
+    }
+
+    private fun dateMatches(raw: String?): Boolean {
+        val value = raw?.trim().orEmpty()
+        if (value.isEmpty()) return true
+        if (value.startsWith(today())) return true
+
+        val nums = Regex("""\d+""").findAll(value).map { it.value.toIntOrNull() }.filterNotNull().toList()
+        if (nums.size < 3) return false
+
+        val (year, month, day) = todayParts()
+        val a = nums[0]
+        val b = nums[1]
+        val c = nums[2]
+
+        return when {
+            a >= 1900 -> a == year && b == month && c == day       // yyyy-MM-dd
+            c >= 1900 -> c == year && b == month && a == day       // dd-MM-yyyy / dd.MM.yyyy
+            else -> false
+        }
+    }
+
+    private fun chooseDay(days: JSONArray?): JSONObject? {
+        if (days == null || days.length() == 0) return null
+
+        var undated: JSONObject? = null
+        for (i in 0 until days.length()) {
+            val obj = days.optJSONObject(i) ?: continue
+            val date = obj.optString("date", "")
+            if (date.isBlank() && undated == null) undated = obj
+            if (dateMatches(date)) return obj
+        }
+        return if (days.length() == 1) days.optJSONObject(0) else undated
+    }
+
+    private fun findTodayNode(json: JSONObject): JSONObject? {
+        chooseDay(json.optJSONArray("days"))?.let { return it }
+
+        json.optJSONArray("results")?.let { results ->
+            for (i in 0 until results.length()) {
+                val r = results.optJSONObject(i) ?: continue
+                chooseDay(r.optJSONArray("days"))?.let { return it }
+                if ((r.has("local") || r.has("times")) && dateMatches(r.optString("date", ""))) {
+                    return r
+                }
+            }
+        }
+
+        json.optJSONObject("data")?.let { data ->
+            chooseDay(data.optJSONArray("days"))?.let { return it }
+            if ((data.has("local") || data.has("times")) && dateMatches(data.optString("date", ""))) {
+                return data
+            }
+        }
+
+        if ((json.has("local") || json.has("times") || json.has("fajr")) &&
+            dateMatches(json.optString("date", ""))) {
+            return json
+        }
+
+        return null
+    }
+
     private fun dateKey(c: Context): String {
         val s = c.getSharedPreferences("alieba_setup", Context.MODE_PRIVATE)
         return today() + "|" + TimeZone.getDefault().id + "|" +
@@ -79,9 +150,10 @@ object PrayerClock {
                     val tz = java.net.URLEncoder.encode(TimeZone.getDefault().id, "UTF-8")
                     val url = URL("https://alieba.ge/api/prayer-times.php?lat=$lat&lng=$lon&tz=$tz")
                     val conn = (url.openConnection() as HttpURLConnection).apply {
-                        connectTimeout = 5000
-                        readTimeout = 5000
+                        connectTimeout = 6000
+                        readTimeout = 6000
                         setRequestProperty("Accept", "application/json")
+                        setRequestProperty("Cache-Control", "no-cache")
                     }
 
                     try {
@@ -89,23 +161,13 @@ object PrayerClock {
                             val json = JSONObject(
                                 conn.inputStream.bufferedReader().use { it.readText() }
                             )
-                            val first = when {
-                                json.optJSONArray("days") != null ->
-                                    json.getJSONArray("days").optJSONObject(0)
 
-                                json.optJSONArray("results") != null ->
-                                    json.getJSONArray("results").optJSONObject(0)
-                                        ?.optJSONArray("days")?.optJSONObject(0)
+                            val node = findTodayNode(json)
+                            val t = node?.optJSONObject("local")
+                                ?: node?.optJSONObject("times")
+                                ?: node
 
-                                else ->
-                                    json.optJSONObject("data")
-                                        ?.optJSONArray("days")?.optJSONObject(0)
-                            }
-
-                            val responseDate = first?.optString("date", "") ?: ""
-                            val t = first?.optJSONObject("local") ?: first
-
-                            if (t != null && (responseDate.isEmpty() || responseDate == today())) {
+                            if (t != null && dateMatches(node?.optString("date", ""))) {
                                 val parsed = fetchKeys.mapNotNull { key ->
                                     val raw = if (key == "midnight") {
                                         t.optString(
@@ -116,12 +178,15 @@ object PrayerClock {
                                         t.optString(key, "").trim()
                                     }
 
-                                    val hm = Regex(
-                                        """(?:^|T|\s)([0-2]\d:[0-5]\d)"""
-                                    ).find(raw)?.groupValues?.get(1)
+                                    val hit = Regex("""(?:^|T|\s)([0-2]?\d):([0-5]\d)""")
+                                        .find(raw)
 
-                                    if (hm != null && hm.substring(0, 2).toInt() <= 23) {
-                                        key to hm
+                                    if (hit != null) {
+                                        val h = hit.groupValues[1].toInt()
+                                        val m = hit.groupValues[2].toInt()
+                                        if (h in 0..23) {
+                                            key to String.format(Locale.US, "%02d:%02d", h, m)
+                                        } else null
                                     } else null
                                 }.toMap()
 
@@ -194,8 +259,6 @@ object PrayerClock {
     ) {
         try {
             if (Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()) {
-                // Strongest Android alarm API for a user-visible alarm.
-                // It wakes from Doze and while the screen is locked.
                 am.setAlarmClock(
                     AlarmManager.AlarmClockInfo(at, showIntent(c, showCode)),
                     op
@@ -258,8 +321,6 @@ object PrayerClock {
 
             schedulePrimary(c, am, at, primary, 7200 + i)
 
-            // Independent backup. AzanPlaybackService deduplicates it if
-            // the primary alarm already played.
             am.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
                 at + 2 * 60 * 1000L,
@@ -297,7 +358,7 @@ object PrayerClock {
         am.cancel(p)
         am.setAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
-            System.currentTimeMillis() + 30 * 60 * 1000L,
+            System.currentTimeMillis() + 5 * 60 * 1000L,
             p
         )
     }
@@ -312,7 +373,7 @@ object PrayerClock {
         val calendar = Calendar.getInstance().apply {
             add(Calendar.DAY_OF_YEAR, 1)
             set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 5)
+            set(Calendar.MINUTE, 3)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }

@@ -12,8 +12,8 @@ android {
         applicationId = "com.alieba.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 28
-        versionName = "19.8"
+        versionCode = 29
+        versionName = "19.9"
     }
 
     compileOptions {
