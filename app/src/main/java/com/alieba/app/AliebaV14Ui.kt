@@ -32,13 +32,11 @@ class MosqueSceneView(c:Context,private val night:Boolean):View(c){
         canvas.drawColor(if(night)0xff14345e.toInt() else 0xff9bcfee.toInt())
 
         if(photo.height > photo.width){
-            // Portrait image: crop a controlled vertical window so the mosque fits naturally.
-            val viewRatio=w/h
-            val cropH=((photo.width / viewRatio)*1.35f).toInt().coerceAtMost(photo.height)
-            // V19.3: zoom the ORIGINAL mosque photo out vertically so the full front of the building stays visible.
-            // Keep the ground in view; never paint or dim the picture for the star effect.
-            val srcTop=(photo.height-cropH).coerceAtLeast(0)
-            val src=Rect(0,srcTop,photo.width,srcTop+cropH)
+            // Original portrait mosque photo, never replaced by a mockup. Keep the
+            // entire entrance, fence AND bottom lawn in frame. Trim only surplus sky
+            // to match the day reference rather than squashing the entire 3:2 photo.
+            val skyTrim=if(night) 0 else (photo.height*.075f).toInt()
+            val src=Rect(0,skyTrim,photo.width,photo.height)
             canvas.drawBitmap(photo,src,RectF(0f,0f,w,h),p)
         } else {
             // Landscape fallback: fill only the extra top area with matching sky, never a dark strip.
@@ -72,7 +70,7 @@ class AliebaPatternDrawable(private val density:Float):Drawable(){
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
     override fun draw(c:Canvas){
         val w=bounds.width().toFloat();val h=bounds.height().toFloat()
-        p.style=Paint.Style.FILL;p.color=0xfffffbf3.toInt()
+        p.style=Paint.Style.FILL;p.color=0xfffffbf4.toInt()
         c.drawRect(0f,0f,w,h,p)
         val step=88f*density
         p.style=Paint.Style.STROKE;p.strokeWidth=.58f*density
@@ -81,7 +79,7 @@ class AliebaPatternDrawable(private val density:Float):Drawable(){
             var x=-step
             while(x<w+step){
                 val r=step*.24f
-                p.color=0x0dbb965d
+                p.color=0x0aba965d
                 val motif=Path().apply {
                     moveTo(x,y-r)
                     cubicTo(x+r*.58f,y-r*.42f,x+r*.58f,y+r*.42f,x,y+r)
@@ -147,12 +145,12 @@ class AliebaPrayerPanelDrawable(private val density:Float):Drawable(){
     private val p=Paint(Paint.ANTI_ALIAS_FLAG)
     override fun draw(c:Canvas){
         val w=bounds.width().toFloat();val h=bounds.height().toFloat();val d=density
-        val lip=h-17f*d;val cx=w*.5f
+        val lip=h-21f*d;val cx=w*.5f
         val shape=Path().apply{
             moveTo(0f,0f);lineTo(w,0f);lineTo(w,lip)
-            lineTo(cx+21*d,lip)
-            cubicTo(cx+12*d,lip+1*d,cx+7*d,lip+11*d,cx,lip+16*d)
-            cubicTo(cx-7*d,lip+11*d,cx-12*d,lip+1*d,cx-21*d,lip)
+            lineTo(cx+25*d,lip)
+            cubicTo(cx+15*d,lip,cx+9*d,lip+13*d,cx,lip+20*d)
+            cubicTo(cx-9*d,lip+13*d,cx-15*d,lip,cx-25*d,lip)
             lineTo(0f,lip);close()
         }
         p.style=Paint.Style.FILL
@@ -164,17 +162,30 @@ class AliebaPrayerPanelDrawable(private val density:Float):Drawable(){
         p.style=Paint.Style.STROKE;p.strokeWidth=1.35f*d;p.color=0xffbe934c.toInt()
         c.drawLine(0f,1.3f*d,w,1.3f*d,p)
         val edge=Path().apply{
-            moveTo(0f,lip);lineTo(cx-21*d,lip)
-            cubicTo(cx-12*d,lip+1*d,cx-7*d,lip+11*d,cx,lip+16*d)
-            cubicTo(cx+7*d,lip+11*d,cx+12*d,lip+1*d,cx+21*d,lip)
+            moveTo(0f,lip);lineTo(cx-25*d,lip)
+            cubicTo(cx-15*d,lip,cx-9*d,lip+13*d,cx,lip+20*d)
+            cubicTo(cx+9*d,lip+13*d,cx+15*d,lip,cx+25*d,lip)
             lineTo(w,lip)
         }
         c.drawPath(edge,p)
+        // Alternating tiny filigree dots and lozenges along the ivory/gold border.
+        p.style=Paint.Style.FILL;p.color=0xffc59c58.toInt()
+        var xx=12f*d
+        while(xx<w-9f*d){
+            if(kotlin.math.abs(xx-cx)>32f*d){
+                c.drawCircle(xx,lip-1.4f*d,1.05f*d,p)
+                val diamond=Path().apply {moveTo(xx+4f*d,lip-2.6f*d);lineTo(xx+6f*d,lip)
+                    lineTo(xx+4f*d,lip+2.6f*d);lineTo(xx+2f*d,lip);close()}
+                c.drawPath(diamond,p)
+            }
+            xx+=18f*d
+        }
+        p.style=Paint.Style.STROKE
         p.strokeWidth=.6f*d;p.color=0x99ffffff.toInt()
         c.save();c.translate(0f,2.5f*d);c.drawPath(edge,p);c.restore()
         // A tiny centred gold ornament at the tip, below the prayer cards.
         p.style=Paint.Style.FILL;p.color=0xffbd8936.toInt()
-        val gem=Path().apply{moveTo(cx,lip+6*d);lineTo(cx+4*d,lip+10*d);lineTo(cx,lip+14*d);lineTo(cx-4*d,lip+10*d);close()}
+        val gem=Path().apply{moveTo(cx,lip+9*d);lineTo(cx+5*d,lip+14*d);lineTo(cx,lip+19*d);lineTo(cx-5*d,lip+14*d);close()}
         c.drawPath(gem,p)
         p.style=Paint.Style.FILL
     }

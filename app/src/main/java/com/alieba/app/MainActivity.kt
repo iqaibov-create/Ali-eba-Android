@@ -663,8 +663,9 @@ root.addView(TextView(this).apply {
         }
         val scroll=ScrollView(this).apply {isFillViewport=true;clipToPadding=false;setPadding(0,0,0,dp(108))}
         val body=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL}
-        // V19.4: photo and prayer times are TWO separate surfaces. No card may hide the mosque.
-        val photoHeight=(resources.displayMetrics.heightPixels * .45f).toInt().coerceIn(dp(330),dp(395))
+        // V19.5: keep the original full-front mosque photo in an uninterrupted hero.
+        // Prayer cards are a separate compact row below it, not an overlay on the building.
+        val photoHeight=(resources.displayMetrics.heightPixels * .485f).toInt().coerceIn(dp(365),dp(420))
         val hero=FrameLayout(this)
         hero.addView(MosqueSceneView(this,night),FrameLayout.LayoutParams(-1,-1))
         hero.addView(View(this).apply {background=AliebaHeroFrameDrawable(resources.displayMetrics.density)},FrameLayout.LayoutParams(-1,-1))
@@ -716,14 +717,14 @@ root.addView(TextView(this).apply {
         hero.addView(date,FrameLayout.LayoutParams(-2,dp(30),Gravity.END or Gravity.BOTTOM).apply {rightMargin=dp(12);bottomMargin=dp(7)})
         body.addView(hero,LinearLayout.LayoutParams(-1,photoHeight))
 
-        // Reference layout: small ornate prayer cards sit BELOW the photo, on their own
-        // warm gold/ivory pedestal. The center pointed ornament extends beneath the row.
+        // Ornate prayer strip BELOW the actual image, on a light gold pedestal with
+        // a downward-facing central triangular ornament, as in the day reference.
         val prayerPanel=FrameLayout(this).apply {
             background=AliebaPrayerPanelDrawable(resources.displayMetrics.density)
             clipChildren=false;clipToPadding=false
         }
-        prayerPanel.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(86),Gravity.TOP).apply {topMargin=dp(4)})
-        body.addView(prayerPanel,LinearLayout.LayoutParams(-1,dp(107)))
+        prayerPanel.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(78),Gravity.TOP).apply {topMargin=dp(5)})
+        body.addView(prayerPanel,LinearLayout.LayoutParams(-1,dp(103)))
         val sections=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL
             background=AliebaPatternDrawable(resources.displayMetrics.density)
@@ -768,17 +769,24 @@ root.addView(TextView(this).apply {
                 "Ayarlar"->R.drawable.alieba_ornament_settings
                 else->0
             }
-            // Icon is centred inside its cell with free space on all four sides.
-            // The bundled PNGs have transparent ROUNDED corners (not square picture edges).
-            cell.addView(ImageView(this).apply {
-                if(ornateIcon!=0){setImageResource(ornateIcon);scaleType=ImageView.ScaleType.FIT_CENTER;setPadding(0,0,0,0)}
-                else {setImageResource(icon);setColorFilter(0xff95702f.toInt());background=AliebaGoldTileDrawable(resources.displayMetrics.density);setPadding(dp(14),dp(14),dp(14),dp(14))}
+            // An independent native rounded tile is the only icon background.
+            // PNG artwork has its old rectangular backdrop removed and ample inset;
+            // this avoids visible square seams and cut-off decorations at every screen size.
+            val iconTile=FrameLayout(this).apply {
+                background=AliebaGoldTileDrawable(resources.displayMetrics.density)
+                clipChildren=false;clipToPadding=false
+                elevation=dp(1).toFloat()
+            }
+            iconTile.addView(ImageView(this).apply {
+                if(ornateIcon!=0) {setImageResource(ornateIcon);scaleType=ImageView.ScaleType.FIT_CENTER}
+                else {setImageResource(icon);setColorFilter(0xffa27b39.toInt());setPadding(dp(14),dp(14),dp(14),dp(14))}
                 contentDescription=title
-            },LinearLayout.LayoutParams(dp(88),dp(88)).apply {topMargin=dp(4)})
-            cell.addView(label(title,12f,0xff453728.toInt()).apply {typeface=Typeface.create("serif",Typeface.NORMAL)},LinearLayout.LayoutParams(-1,dp(28)))
+            },FrameLayout.LayoutParams(dp(77),dp(77),Gravity.CENTER))
+            cell.addView(iconTile,LinearLayout.LayoutParams(dp(82),dp(82)).apply {topMargin=dp(8)})
+            cell.addView(label(title,12f,0xff453728.toInt()).apply {typeface=Typeface.create("serif",Typeface.NORMAL)},LinearLayout.LayoutParams(-1,dp(29)))
             cell.setOnClickListener {when(title) {"Ayarlar"->showSettings();"Yeniliklər"->showNews();"Məsləhət"->startActivity(Intent(this,NativeAdviceActivity::class.java));"Kömək et"->startActivity(Intent(this,NativeDonateActivity::class.java));"Zikr və təsbeh"->startActivity(Intent(this,ZikrActivity::class.java));"Qiblə kompası"->startActivity(Intent(this,QiblaActivity::class.java));else->openWebsiteSection(title)}}
             icons.addView(cell,android.widget.GridLayout.LayoutParams().apply {
-                width=0;height=dp(127)
+                width=0;height=dp(124)
                 columnSpec=android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED,1f)
                 setMargins(dp(1),dp(4),dp(1),dp(4))
             })
@@ -803,11 +811,11 @@ root.addView(TextView(this).apply {
             val time=t[key] ?: "--:--"
             val selected=active==key && time!="--:--"
             val background=AliebaPrayerCardDrawable(resources.displayMetrics.density,selected)
-            val card=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL;this.background=background;setPadding(0,dp(13),0,dp(3));elevation=if(selected)dp(2).toFloat() else 0f;setOnClickListener{prayerSettings()} }
+            val card=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL;this.background=background;setPadding(0,dp(11),0,dp(2));elevation=if(selected)dp(2).toFloat() else 0f;setOnClickListener{prayerSettings()} }
             card.addView(AliebaPrayerSymbolView(this,key),LinearLayout.LayoutParams(dp(17),dp(17)))
-            card.addView(label(name,8f,if(selected)0xffffe8a3.toInt() else Color.WHITE,selected).apply {setLines(2);setShadowLayer(if(selected)3f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(27)))
-            card.addView(label(time,11f,if(selected)0xffffe09b.toInt() else Color.WHITE,true),LinearLayout.LayoutParams(-1,dp(19)))
-            row.addView(card,LinearLayout.LayoutParams(0,dp(82),1f).apply {setMargins(dp(1),0,dp(1),0)})
+            card.addView(label(name,8f,if(selected)0xffffe8a3.toInt() else Color.WHITE,selected).apply {setLines(2);setShadowLayer(if(selected)3f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(24)))
+            card.addView(label(time,11f,if(selected)0xffffe09b.toInt() else Color.WHITE,true),LinearLayout.LayoutParams(-1,dp(18)))
+            row.addView(card,LinearLayout.LayoutParams(0,dp(74),1f).apply {setMargins(dp(1),0,dp(1),0)})
         }
         return row
     }
