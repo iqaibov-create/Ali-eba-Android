@@ -11,12 +11,12 @@ import android.view.*
 import android.widget.*
 import kotlin.math.min
 
-/** V17.2: use the approved day/night mosque photos directly, avoid split bands,
- * keep the mosque natural, and show only soft twinkling stars at night. */
+/** V19.6: keep the approved day/night mosque photos in their natural proportions.
+ * Never stretch the photo to the hero rectangle; crop only the smallest necessary
+ * amount while preserving the mosque/fence composition. */
 class MosqueSceneView(c:Context,private val night:Boolean):View(c){
     private val photo=BitmapFactory.decodeResource(resources,if(night)R.drawable.mosque_night else R.drawable.mosque_day)
     private val p=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
-    // Keep the photo fully opaque. Star twinkle must never change the bitmap paint.
     private val starPaint=Paint(Paint.ANTI_ALIAS_FLAG).apply {style=Paint.Style.FILL}
     private val stars=(0 until 30).map { i ->
         val x=((i*73+19)%97+1)/100f
@@ -31,25 +31,24 @@ class MosqueSceneView(c:Context,private val night:Boolean):View(c){
         p.alpha=255
         canvas.drawColor(if(night)0xff14345e.toInt() else 0xff9bcfee.toInt())
 
-        if(photo.height > photo.width){
-            // Original portrait mosque photo, never replaced by a mockup. Keep the
-            // entire entrance, fence AND bottom lawn in frame. Trim only surplus sky
-            // to match the day reference rather than squashing the entire 3:2 photo.
-            val skyTrim=if(night) 0 else (photo.height*.075f).toInt()
-            val src=Rect(0,skyTrim,photo.width,photo.height)
-            canvas.drawBitmap(photo,src,RectF(0f,0f,w,h),p)
-        } else {
-            // Landscape fallback: fill only the extra top area with matching sky, never a dark strip.
-            val imageHeight=w*photo.height.toFloat()/photo.width.toFloat()
-            val imageTop=(h-imageHeight).coerceAtLeast(0f)
-            if(imageTop>1f){
-                val skyPixels=(photo.height*.18f).toInt().coerceAtLeast(1)
-                p.alpha=232
-                canvas.drawBitmap(photo,Rect(0,0,photo.width,skyPixels),RectF(0f,0f,w,imageTop+2f),p)
-                p.alpha=255
-            }
-            canvas.drawBitmap(photo,null,RectF(0f,imageTop,w,imageTop+imageHeight),p)
+        // True CENTER_CROP math: preserves aspect ratio and fills the hero without
+        // horizontal/vertical squashing. Bias the crop slightly upward so the fence,
+        // entrance and lower part of the mosque remain visible.
+        val srcRatio=photo.width.toFloat()/photo.height.toFloat()
+        val dstRatio=w/h
+        val src:Rect
+        if(dstRatio>srcRatio){
+            val cropH=(photo.width/dstRatio).toInt().coerceIn(1,photo.height)
+            val extra=(photo.height-cropH).coerceAtLeast(0)
+            val top=(extra*(if(night)0.42f else 0.48f)).toInt().coerceIn(0,extra)
+            src=Rect(0,top,photo.width,top+cropH)
+        }else{
+            val cropW=(photo.height*dstRatio).toInt().coerceIn(1,photo.width)
+            val extra=(photo.width-cropW).coerceAtLeast(0)
+            val left=(extra*.5f).toInt().coerceIn(0,extra)
+            src=Rect(left,0,left+cropW,photo.height)
         }
+        canvas.drawBitmap(photo,src,RectF(0f,0f,w,h),p)
 
         if(night){
             val tm=android.os.SystemClock.uptimeMillis()
@@ -158,7 +157,6 @@ class AliebaPrayerPanelDrawable(private val density:Float):Drawable(){
             intArrayOf(0xfffff7e6.toInt(),0xffead0a0.toInt(),0xfff8efd8.toInt()),
             floatArrayOf(0f,.53f,1f),Shader.TileMode.CLAMP)
         c.drawPath(shape,p);p.shader=null
-        // Fine gold upper and lower edges follow the triangular point.
         p.style=Paint.Style.STROKE;p.strokeWidth=1.35f*d;p.color=0xffbe934c.toInt()
         c.drawLine(0f,1.3f*d,w,1.3f*d,p)
         val edge=Path().apply{
@@ -168,7 +166,6 @@ class AliebaPrayerPanelDrawable(private val density:Float):Drawable(){
             lineTo(w,lip)
         }
         c.drawPath(edge,p)
-        // Alternating tiny filigree dots and lozenges along the ivory/gold border.
         p.style=Paint.Style.FILL;p.color=0xffc59c58.toInt()
         var xx=12f*d
         while(xx<w-9f*d){
@@ -183,7 +180,6 @@ class AliebaPrayerPanelDrawable(private val density:Float):Drawable(){
         p.style=Paint.Style.STROKE
         p.strokeWidth=.6f*d;p.color=0x99ffffff.toInt()
         c.save();c.translate(0f,2.5f*d);c.drawPath(edge,p);c.restore()
-        // A tiny centred gold ornament at the tip, below the prayer cards.
         p.style=Paint.Style.FILL;p.color=0xffbd8936.toInt()
         val gem=Path().apply{moveTo(cx,lip+9*d);lineTo(cx+5*d,lip+14*d);lineTo(cx,lip+19*d);lineTo(cx-5*d,lip+14*d);close()}
         c.drawPath(gem,p)
