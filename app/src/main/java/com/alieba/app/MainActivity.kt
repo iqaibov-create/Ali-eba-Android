@@ -665,7 +665,7 @@ root.addView(TextView(this).apply {
         val body=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL}
         // V19.5: keep the original full-front mosque photo in an uninterrupted hero.
         // Prayer cards are a separate compact row below it, not an overlay on the building.
-        val photoHeight=(resources.displayMetrics.heightPixels * .485f).toInt().coerceIn(dp(365),dp(420))
+        val photoHeight=(resources.displayMetrics.heightPixels * .515f).toInt().coerceIn(dp(390),dp(445))
         val hero=FrameLayout(this)
         hero.addView(MosqueSceneView(this,night),FrameLayout.LayoutParams(-1,-1))
         hero.addView(View(this).apply {background=AliebaHeroFrameDrawable(resources.displayMetrics.density)},FrameLayout.LayoutParams(-1,-1))
@@ -723,8 +723,8 @@ root.addView(TextView(this).apply {
             background=AliebaPrayerPanelDrawable(resources.displayMetrics.density)
             clipChildren=false;clipToPadding=false
         }
-        prayerPanel.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(78),Gravity.TOP).apply {topMargin=dp(5)})
-        body.addView(prayerPanel,LinearLayout.LayoutParams(-1,dp(103)))
+        prayerPanel.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(66),Gravity.TOP).apply {topMargin=dp(8)})
+        body.addView(prayerPanel,LinearLayout.LayoutParams(-1,dp(90)))
         val sections=LinearLayout(this).apply {
             orientation=LinearLayout.VERTICAL
             background=AliebaPatternDrawable(resources.displayMetrics.density)
@@ -804,18 +804,18 @@ root.addView(TextView(this).apply {
     private fun prayerStrip():View {
         val t=PrayerClock.times(this)
         val active=PrayerClock.activeKey(this)
-        val row=LinearLayout(this).apply {gravity=Gravity.TOP;orientation=LinearLayout.HORIZONTAL;setPadding(dp(3),0,dp(3),0)}
+        val row=LinearLayout(this).apply {gravity=Gravity.TOP;orientation=LinearLayout.HORIZONTAL;setPadding(dp(5),0,dp(5),0)}
         for(i in PrayerClock.keys.indices) {
             val key=PrayerClock.keys[i]
             val name=PrayerClock.displayNames[i]
             val time=t[key] ?: "--:--"
             val selected=active==key && time!="--:--"
             val background=AliebaPrayerCardDrawable(resources.displayMetrics.density,selected)
-            val card=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL;this.background=background;setPadding(0,dp(11),0,dp(2));elevation=if(selected)dp(2).toFloat() else 0f;setOnClickListener{prayerSettings()} }
-            card.addView(AliebaPrayerSymbolView(this,key),LinearLayout.LayoutParams(dp(17),dp(17)))
-            card.addView(label(name,8f,if(selected)0xffffe8a3.toInt() else Color.WHITE,selected).apply {setLines(2);setShadowLayer(if(selected)3f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(24)))
-            card.addView(label(time,11f,if(selected)0xffffe09b.toInt() else Color.WHITE,true),LinearLayout.LayoutParams(-1,dp(18)))
-            row.addView(card,LinearLayout.LayoutParams(0,dp(74),1f).apply {setMargins(dp(1),0,dp(1),0)})
+            val card=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL;this.background=background;setPadding(0,dp(7),0,dp(1));elevation=if(selected)dp(2).toFloat() else 0f;setOnClickListener{prayerSettings()} }
+            card.addView(AliebaPrayerSymbolView(this,key),LinearLayout.LayoutParams(dp(14),dp(14)))
+            card.addView(label(name,7.2f,if(selected)0xffffe8a3.toInt() else Color.WHITE,selected).apply {setLines(2);setShadowLayer(if(selected)3f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(20)))
+            card.addView(label(time,10f,if(selected)0xffffe09b.toInt() else Color.WHITE,true),LinearLayout.LayoutParams(-1,dp(16)))
+            row.addView(card,LinearLayout.LayoutParams(0,dp(62),1f).apply {setMargins(dp(1),0,dp(1),0)})
         }
         return row
     }

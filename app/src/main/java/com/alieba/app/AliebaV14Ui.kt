@@ -40,7 +40,7 @@ class MosqueSceneView(c:Context,private val night:Boolean):View(c){
         if(dstRatio>srcRatio){
             val cropH=(photo.width/dstRatio).toInt().coerceIn(1,photo.height)
             val extra=(photo.height-cropH).coerceAtLeast(0)
-            val top=(extra*(if(night)0.42f else 0.48f)).toInt().coerceIn(0,extra)
+            val top=(extra*(if(night)0.68f else 0.66f)).toInt().coerceIn(0,extra)
             src=Rect(0,top,photo.width,top+cropH)
         }else{
             val cropW=(photo.height*dstRatio).toInt().coerceIn(1,photo.width)
