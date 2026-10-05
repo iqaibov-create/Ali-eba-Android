@@ -21,12 +21,14 @@ class NativeSettingsActivity: Activity() {
  private val ink=0xff183e37.toInt()
  private val prefs by lazy{getSharedPreferences("alieba_setup",MODE_PRIVATE)}
  private fun dp(v:Int)=(v*resources.displayMetrics.density).toInt()
- private fun bg(c:Int,r:Int=17)=GradientDrawable().apply{setColor(c);cornerRadius=dp(r).toFloat()}
+ private fun bg(c:Int,r:Int=17)=GradientDrawable().apply{
+  setColor(if(c==Color.WHITE)0xfffffdf8.toInt() else c)
+  cornerRadius=dp(r).toFloat()
+  setStroke(dp(1),0xffd8b56a.toInt())
+ }
  private fun text(s:String,size:Float=16f,bold:Boolean=false)=TextView(this).apply{text=s;textSize=size;setTextColor(ink);if(bold)typeface=Typeface.DEFAULT_BOLD}
  override fun onCreate(b:Bundle?){super.onCreate(b)
-  androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window,true)
-  window.statusBarColor=0xfff7f8fa.toInt();window.navigationBarColor=Color.WHITE
-  window.decorView.systemUiVisibility=View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+  NativeUi.setBars(this)
   draw()
  }
  private fun draw(){

@@ -22,6 +22,7 @@
         <activity
             android:name=".NativeHomeActivity"
             android:screenOrientation="portrait"
+            android:noHistory="true"
             android:exported="false"/>
 
         <activity

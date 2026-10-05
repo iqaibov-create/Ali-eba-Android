@@ -29,7 +29,7 @@ class NativeNewsActivity : Activity() {
     private fun buildBase() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(NativeUi.bg)
+            background = AliebaPatternDrawable(resources.displayMetrics.density)
         }
 
         root.addView(NativeUi.topBar(this, "Yeniliklər") { finish() })
@@ -61,9 +61,9 @@ class NativeNewsActivity : Activity() {
 
     private fun loadNews() {
         body.removeAllViews()
-        body.addView(NativeUi.text(this, "Son yeniliklər", 25f, NativeUi.ink, true))
-        body.addView(NativeUi.text(this, "Saytda yayımlanan xəbərlər APK-da native görünür.", 12f, NativeUi.muted).apply {
-            setPadding(0, NativeUi.dp(this@NativeNewsActivity, 5), 0, NativeUi.dp(this@NativeNewsActivity, 12))
+        body.addView(NativeUi.text(this, "Yeniliklər", 27f, NativeUi.ink, true).apply {
+            typeface = android.graphics.Typeface.create("serif", android.graphics.Typeface.BOLD)
+            setPadding(NativeUi.dp(this@NativeNewsActivity, 3), 0, 0, NativeUi.dp(this@NativeNewsActivity, 12))
         })
 
         val loading = NativeUi.text(this, "Yüklənir…", 13f, NativeUi.muted)
@@ -118,7 +118,7 @@ class NativeNewsActivity : Activity() {
     private fun newsCard(item: JSONObject): View {
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            background = NativeUi.card(this@NativeNewsActivity)
+            background = NativeUi.card(this@NativeNewsActivity, 18)
             elevation = NativeUi.dp(this@NativeNewsActivity, 3).toFloat()
             clipToOutline = true
             setOnClickListener { openNews(item.optInt("id")) }
@@ -126,7 +126,8 @@ class NativeNewsActivity : Activity() {
 
         val image = item.optString("image")
         if (image.isNotBlank()) {
-            card.addView(
+            val media = FrameLayout(this)
+            media.addView(
                 ImageView(this).apply {
                     scaleType = ImageView.ScaleType.CENTER_CROP
                     load(MobileApi.absolute(image)) {
@@ -135,8 +136,32 @@ class NativeNewsActivity : Activity() {
                         diskCacheKey("news_${item.optInt("id")}")
                     }
                 },
-                LinearLayout.LayoutParams(-1, NativeUi.dp(this, 228))
+                FrameLayout.LayoutParams(-1, -1)
             )
+
+            media.addView(
+                NativeUi.text(this, item.optString("date").take(16), 11f, Color.WHITE, true).apply {
+                    gravity = Gravity.CENTER
+                    setPadding(
+                        NativeUi.dp(this@NativeNewsActivity, 10),
+                        NativeUi.dp(this@NativeNewsActivity, 5),
+                        NativeUi.dp(this@NativeNewsActivity, 10),
+                        NativeUi.dp(this@NativeNewsActivity, 5)
+                    )
+                    background = NativeUi.shape(
+                        this@NativeNewsActivity,
+                        0xee0d5b50.toInt(),
+                        0
+                    )
+                },
+                FrameLayout.LayoutParams(
+                    NativeUi.dp(this, 122),
+                    NativeUi.dp(this, 48),
+                    Gravity.TOP or Gravity.START
+                )
+            )
+
+            card.addView(media, LinearLayout.LayoutParams(-1, NativeUi.dp(this, 220)))
         }
 
         val copy = LinearLayout(this).apply {
@@ -150,25 +175,21 @@ class NativeNewsActivity : Activity() {
         }
 
         copy.addView(
-            NativeUi.text(this, item.optString("title"), 24f, NativeUi.ink, true).apply {
-                setLineSpacing(NativeUi.dp(this@NativeNewsActivity, 2).toFloat(), 1.0f)
-            }
-        )
-        copy.addView(
-            NativeUi.text(this, item.optString("date"), 10f, NativeUi.gold, true).apply {
-                setPadding(0, NativeUi.dp(this@NativeNewsActivity, 6), 0, NativeUi.dp(this@NativeNewsActivity, 9))
+            NativeUi.text(this, item.optString("title"), 23f, NativeUi.ink, true).apply {
+                typeface = android.graphics.Typeface.create("serif", android.graphics.Typeface.BOLD)
+                setLineSpacing(NativeUi.dp(this@NativeNewsActivity, 2).toFloat(), 1.02f)
             }
         )
 
         val stats = LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, NativeUi.dp(this@NativeNewsActivity, 12), 0, 0)
         }
-
         stats.addView(stat("◉", item.optInt("views").toString()))
         stats.addView(stat("♡", item.optInt("likes").toString()))
         stats.addView(stat("♧", item.optInt("dislikes").toString()))
         stats.addView(LinearLayout(this), LinearLayout.LayoutParams(0, 1, 1f))
-        stats.addView(NativeUi.text(this, "Oxu →", 11f, NativeUi.green, true))
+        stats.addView(NativeUi.text(this, "Oxu  →", 12f, NativeUi.green, true))
         copy.addView(stats)
 
         card.addView(copy)

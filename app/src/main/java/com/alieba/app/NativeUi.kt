@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Canvas
 import android.graphics.PixelFormat
+import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
@@ -14,16 +15,16 @@ import android.view.View
 import android.widget.*
 
 object NativeUi {
-    val bg = 0xfff7fbf8.toInt()
-    val white = Color.WHITE
-    val ink = 0xff173f36.toInt()
-    val green = 0xff176454.toInt()
-    val green2 = 0xff2d8068.toInt()
-    val soft = 0xffedf7f2.toInt()
-    val line = 0xffdce8e2.toInt()
-    val muted = 0xff71847d.toInt()
-    val gold = 0xffb79242.toInt()
-    val red = 0xffb94e4e.toInt()
+    val bg = 0xfffffbf2.toInt()
+    val white = 0xfffffdf8.toInt()
+    val ink = 0xff183f37.toInt()
+    val green = 0xff0d5b50.toInt()
+    val green2 = 0xff247568.toInt()
+    val soft = 0xfffff5df.toInt()
+    val line = 0xffd8b56a.toInt()
+    val muted = 0xff766f63.toInt()
+    val gold = 0xffb78938.toInt()
+    val red = 0xffa94a45.toInt()
 
     fun dp(c: Context, n: Int) =
         (n * c.resources.displayMetrics.density).toInt()
@@ -50,7 +51,7 @@ object NativeUi {
         text = value
         textSize = size
         setTextColor(color)
-        if (bold) typeface = android.graphics.Typeface.DEFAULT_BOLD
+        if (bold) typeface = Typeface.DEFAULT_BOLD
         includeFontPadding = false
     }
 
@@ -58,11 +59,17 @@ object NativeUi {
         val row = LinearLayout(activity).apply {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(activity, 10), dp(activity, 7), dp(activity, 13), dp(activity, 7))
-            setBackgroundColor(Color.WHITE)
+            background = shape(activity, 0xfffffcf4.toInt(), 0, line)
+            elevation = dp(activity, 2).toFloat()
         }
 
-        val back = text(activity, if (onBack == null) "☪" else "‹", if (onBack == null) 24f else 34f,
-            if (onBack == null) green else ink, true).apply {
+        val back = text(
+            activity,
+            if (onBack == null) "☪" else "‹",
+            if (onBack == null) 24f else 34f,
+            if (onBack == null) gold else green,
+            true
+        ).apply {
             gravity = Gravity.CENTER
             if (onBack != null) setOnClickListener { onBack() }
         }
@@ -72,22 +79,28 @@ object NativeUi {
             text(activity, title, 20f, ink, true).apply {
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(dp(activity, 6), 0, 0, 0)
+                typeface = Typeface.create("serif", Typeface.BOLD)
             },
             LinearLayout.LayoutParams(0, dp(activity, 48), 1f)
+        )
+
+        row.addView(
+            text(activity, "✦", 15f, gold, true).apply { gravity = Gravity.CENTER },
+            LinearLayout.LayoutParams(dp(activity, 34), dp(activity, 34))
         )
 
         return row
     }
 
     fun card(c: Context, radius: Int = 17) =
-        shape(c, Color.WHITE, radius, line)
+        shape(c, white, radius, line)
 
     fun setBars(activity: Activity) {
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(activity.window, true)
-        activity.window.statusBarColor = bg
-        activity.window.navigationBarColor = Color.WHITE
+        activity.window.statusBarColor = 0xff0f4b43.toInt()
+        activity.window.navigationBarColor = bg
         activity.window.decorView.systemUiVisibility =
-            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+            View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
     }
 }
 
@@ -104,16 +117,8 @@ class NativeWaveDrawable(private val density: Float) : Drawable() {
         val path = Path().apply {
             moveTo(0f, lift)
             lineTo(cx - half, lift)
-            cubicTo(
-                cx - 36f*density, lift,
-                cx - 34f*density, 0f,
-                cx, 0f
-            )
-            cubicTo(
-                cx + 34f*density, 0f,
-                cx + 36f*density, lift,
-                cx + half, lift
-            )
+            cubicTo(cx - 36f*density, lift, cx - 34f*density, 0f, cx, 0f)
+            cubicTo(cx + 34f*density, 0f, cx + 36f*density, lift, cx + half, lift)
             lineTo(w, lift)
             lineTo(w, h)
             lineTo(0f, h)
@@ -121,12 +126,12 @@ class NativeWaveDrawable(private val density: Float) : Drawable() {
         }
 
         p.style = Paint.Style.FILL
-        p.color = Color.WHITE
+        p.color = 0xfffffcf4.toInt()
         c.drawPath(path, p)
 
         p.style = Paint.Style.STROKE
         p.strokeWidth = 1f * density
-        p.color = 0xffdce8e2.toInt()
+        p.color = 0xffd8b56a.toInt()
         c.drawPath(path, p)
     }
 

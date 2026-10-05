@@ -823,6 +823,8 @@ root.addView(TextView(this).apply {
                 "Hədislər"->R.drawable.alieba_ornament_hadis
                 "Kitabxana"->R.drawable.alieba_ornament_library
                 "Məsləhət"->R.drawable.alieba_ornament_advice
+                "Dini sual-cavab"->R.drawable.alieba_ornament_advice
+                "Mütəxəssislər"->R.drawable.alieba_ornament_advice
                 "Kömək et"->R.drawable.alieba_ornament_donate
                 "Yadda saxla"->R.drawable.alieba_ornament_saved
                 "Zikr və təsbeh"->R.drawable.alieba_ornament_zikr

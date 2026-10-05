@@ -35,13 +35,13 @@ import java.net.URL
 class NativeContentActivity : Activity() {
 
     private val ink = 0xff173f36.toInt()
-    private val green = 0xff176454.toInt()
-    private val green2 = 0xff2d8068.toInt()
-    private val softGreen = 0xffedf7f2.toInt()
-    private val bg = 0xfff8fbf9.toInt()
-    private val line = 0xffdce8e2.toInt()
-    private val muted = 0xff71847d.toInt()
-    private val gold = 0xffb79242.toInt()
+    private val green = 0xff0d5b50.toInt()
+    private val green2 = 0xff247568.toInt()
+    private val softGreen = 0xfffff5df.toInt()
+    private val bg = 0xfffffbf2.toInt()
+    private val line = 0xffd8b56a.toInt()
+    private val muted = 0xff766f63.toInt()
+    private val gold = 0xffb78938.toInt()
 
     private lateinit var body: LinearLayout
     private lateinit var scroll: ScrollView
@@ -138,7 +138,7 @@ class NativeContentActivity : Activity() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(bg)
+            background = AliebaPatternDrawable(resources.displayMetrics.density)
         }
 
         val bar = LinearLayout(this).apply {
@@ -179,7 +179,7 @@ class NativeContentActivity : Activity() {
         scroll = ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
-            setBackgroundColor(bg)
+            background = AliebaPatternDrawable(resources.displayMetrics.density)
         }
 
         body = LinearLayout(this).apply {

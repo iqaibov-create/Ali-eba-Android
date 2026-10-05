@@ -53,7 +53,7 @@ class NativeProfileActivity : Activity() {
     private fun buildBase() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(NativeUi.bg)
+            background = AliebaPatternDrawable(resources.displayMetrics.density)
         }
 
         root.addView(NativeUi.topBar(this, "Profil") { finish() })
