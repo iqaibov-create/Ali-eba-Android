@@ -19,12 +19,20 @@
         android:allowBackup="true"
         android:usesCleartextTraffic="false">
 
-        <activity android:name=".MainActivity" android:screenOrientation="portrait" android:exported="true">
+        <activity
+            android:name=".NativeHomeActivity"
+            android:screenOrientation="portrait"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".MainActivity"
+            android:screenOrientation="portrait"
+            android:exported="false"/>
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -39,6 +47,10 @@
         <activity android:name=".ZikrActivity" android:exported="false"/>
         <activity android:name=".QiblaActivity" android:exported="false"/>
         <activity android:name=".NativeContentActivity" android:exported="false"/>
+        <activity android:name=".NativeNewsActivity" android:exported="false"/>
+        <activity android:name=".NativeQaActivity" android:exported="false"/>
+        <activity android:name=".NativeExpertActivity" android:exported="false" android:windowSoftInputMode="adjustResize"/>
+        <activity android:name=".NativeProfileActivity" android:exported="false"/>
         <activity android:name=".NativeSettingsActivity" android:exported="false"/>
         <activity android:name=".NativeAdviceActivity" android:exported="false" android:windowSoftInputMode="adjustResize"/>
         <activity android:name=".NativeDonateActivity" android:exported="false"/>
@@ -49,7 +61,9 @@
             android:stopWithTask="false"
             android:exported="false"/>
 
-        <service android:name=".NewsMessagingService" android:exported="false">
+        <service
+            android:name=".NewsMessagingService"
+            android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT"/>
             </intent-filter>
@@ -73,7 +87,9 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/prayer_widget_info"/>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/prayer_widget_info"/>
         </receiver>
     </application>
 </manifest>
