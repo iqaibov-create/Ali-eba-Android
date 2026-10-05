@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.Gravity
+import android.view.View
 import android.widget.*
 import coil.load
 import com.google.firebase.auth.FirebaseAuth
@@ -181,7 +182,7 @@ class NativeExpertActivity : Activity() {
             stats.addView(
                 NativeUi.text(this, it, 11f, Color.WHITE, true).apply {
                     gravity = Gravity.CENTER
-                    background = NativeUi.shape(this@NativeExpertActivity, 0x221ffffff, 13)
+                    background = NativeUi.shape(this@NativeExpertActivity, 0x22ffffff, 13)
                 },
                 LinearLayout.LayoutParams(0, NativeUi.dp(this, 60), 1f).apply {
                     leftMargin = NativeUi.dp(this@NativeExpertActivity, 3)
