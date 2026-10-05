@@ -46,5 +46,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Alieba-V21.4-release-apk
+          name: Alieba-V21.6-release-apk
           path: app/build/outputs/apk/release/app-release.apk

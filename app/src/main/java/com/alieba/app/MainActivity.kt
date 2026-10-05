@@ -713,150 +713,291 @@ root.addView(TextView(this).apply {
         if(bold) typeface=Typeface.DEFAULT_BOLD
     }
     private fun home(): View {
-        val t=PrayerClock.times(this)
-        val nowText=java.text.SimpleDateFormat("HH:mm",java.util.Locale.US).format(java.util.Date())
-        val dawn=t["sunrise"] ?: "06:00"
-        val dusk=t["sunset"] ?: "19:00"
-        val night=nowText < dawn || nowText >= dusk
-        val root=FrameLayout(this).apply {
-            background=AliebaPatternDrawable(resources.displayMetrics.density)
-        }
-        val scroll=ScrollView(this).apply {isFillViewport=true;clipToPadding=false;setPadding(0,0,0,dp(108))}
-        val body=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL}
-        // V19.5: keep the original full-front mosque photo in an uninterrupted hero.
-        // Prayer cards are a separate compact row below it, not an overlay on the building.
-        val photoHeight=(resources.displayMetrics.heightPixels * .515f).toInt().coerceIn(dp(390),dp(445))
-        val hero=FrameLayout(this)
-        hero.addView(MosqueSceneView(this,night),FrameLayout.LayoutParams(-1,-1))
-        hero.addView(View(this).apply {background=AliebaHeroFrameDrawable(resources.displayMetrics.density)},FrameLayout.LayoutParams(-1,-1))
-        val top=LinearLayout(this).apply {
-            gravity=Gravity.CENTER_VERTICAL;orientation=LinearLayout.HORIZONTAL
-            setPadding(dp(13),dp(8),dp(17),0)
-        }
-        val brandIcon=ImageView(this).apply {setImageResource(R.drawable.alieba_gold_brand);scaleType=ImageView.ScaleType.FIT_CENTER;contentDescription="Alieba"}
-        top.addView(brandIcon,LinearLayout.LayoutParams(dp(48),dp(48)))
-        val names=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER_VERTICAL;setPadding(dp(9),0,0,0)}
-        names.addView(label("Alieba App",18f,0xfffff3d3.toInt(),true).apply {gravity=Gravity.START;typeface=Typeface.create("serif",Typeface.BOLD);setShadowLayer(dp(2).toFloat(),0f,dp(1).toFloat(),0xee142936.toInt())})
-        names.addView(label("İmanla yaşa",10f,0xfff3e4bb.toInt()).apply {gravity=Gravity.START})
-        top.addView(names,LinearLayout.LayoutParams(0,dp(52),1f))
-        val avatar=ImageView(this).apply {
-            setImageResource(R.drawable.ic_profile);setColorFilter(0xff73572f.toInt())
-            background=GradientDrawable().apply {shape=GradientDrawable.OVAL;setColor(0xedfff9e7.toInt());setStroke(dp(1),0xffd6ac62.toInt())}
-            setPadding(dp(12),dp(12),dp(12),dp(12));setOnClickListener{showProfile()}
-        }
-        top.addView(avatar,LinearLayout.LayoutParams(dp(48),dp(48)))
-        hero.addView(top,FrameLayout.LayoutParams(-1,dp(68),Gravity.TOP).apply {topMargin=dp(9)})
-        // A single native heading renders sharply on both day and night photos.
-        // Do not bake a second copy of the wording into the images.
-        val quote=LinearLayout(this).apply {
-            orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER
-            setPadding(dp(8),dp(2),dp(8),dp(2))
-        }
-        val heading=label("Hər gün Allaha\ndaha yaxın",26f,0xfffff2d6.toInt(),true).apply {
-            typeface=Typeface.create("serif",Typeface.BOLD)
-            letterSpacing=.014f
-            setLineSpacing(dp(1).toFloat(),1.03f)
-            setShadowLayer(dp(3).toFloat(),0f,dp(2).toFloat(),0xcc092c3e.toInt())
-            includeFontPadding=false
-        }
-        quote.addView(heading,LinearLayout.LayoutParams(-1,-2))
-        val ornament=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.HORIZONTAL}
-        ornament.addView(View(this).apply {setBackgroundColor(0xfff4d99c.toInt())},LinearLayout.LayoutParams(dp(44),dp(1)))
-        ornament.addView(label("✦",13f,0xfff9e2a9.toInt(),true),LinearLayout.LayoutParams(dp(29),dp(19)))
-        ornament.addView(View(this).apply {setBackgroundColor(0xfff4d99c.toInt())},LinearLayout.LayoutParams(dp(44),dp(1)))
-        quote.addView(ornament,LinearLayout.LayoutParams(-1,dp(23)).apply {topMargin=dp(3)})
-        quote.addView(label("Allah zikr edənləri sevir. · Bəqərə, 152",
-            11f,0xfffff7e9.toInt()).apply {
-            typeface=Typeface.create("serif",Typeface.NORMAL)
-            setShadowLayer(dp(2).toFloat(),0f,dp(1).toFloat(),0xcc102a3d.toInt())
-        },LinearLayout.LayoutParams(-1,-2))
-        hero.addView(quote,FrameLayout.LayoutParams(-1,dp(122),Gravity.TOP).apply {
-            topMargin=dp(67);leftMargin=dp(12);rightMargin=dp(12)
-        })
-        val date=label(java.text.SimpleDateFormat("d MMMM, EEEE",java.util.Locale.forLanguageTag("az")).format(java.util.Date()),12f,Color.WHITE,true).apply {setShadowLayer(4f,0f,2f,0xbb001c20.toInt());setPadding(dp(8),dp(3),dp(8),dp(3))}
-        hero.addView(date,FrameLayout.LayoutParams(-2,dp(30),Gravity.END or Gravity.BOTTOM).apply {rightMargin=dp(12);bottomMargin=dp(7)})
-        body.addView(hero,LinearLayout.LayoutParams(-1,photoHeight))
+        val t = PrayerClock.times(this)
+        val nowText = java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date())
+        val dawn = t["sunrise"] ?: "06:00"
+        val dusk = t["sunset"] ?: "19:00"
+        val night = nowText < dawn || nowText >= dusk
 
-        // Ornate prayer strip BELOW the actual image, on a light gold pedestal with
-        // a downward-facing central triangular ornament, as in the day reference.
-        val prayerPanel=FrameLayout(this).apply {
-            background=AliebaPrayerPanelDrawable(resources.displayMetrics.density)
-            clipChildren=false;clipToPadding=false
+        val root = FrameLayout(this).apply {
+            background = AliebaPatternDrawable(resources.displayMetrics.density)
         }
-        prayerPanel.addView(prayerStrip(),FrameLayout.LayoutParams(-1,dp(66),Gravity.TOP).apply {topMargin=dp(8)})
-        body.addView(prayerPanel,LinearLayout.LayoutParams(-1,dp(90)))
-        val sections=LinearLayout(this).apply {
-            orientation=LinearLayout.VERTICAL
-            background=AliebaPatternDrawable(resources.displayMetrics.density)
-            setPadding(dp(9),dp(8),dp(9),dp(22))
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            clipToPadding = false
+            setPadding(0, 0, 0, dp(92))
         }
-        val icons=android.widget.GridLayout(this).apply {
-            columnCount=3
-            alignmentMode=android.widget.GridLayout.ALIGN_BOUNDS
-            useDefaultMargins=false
-            setPadding(dp(3),dp(3),dp(3),dp(10))
-        }
-        val entries=listOf(
-            Triple("Quran",R.drawable.ic_quran,0xff16b3a2.toInt()),
-            Triple("Məfatih",R.drawable.ic_dua,0xffef8856.toInt()),
-            Triple("Əhkam",R.drawable.ic_rules,0xff00a5c8.toInt()),
-            Triple("Yeniliklər",R.drawable.ic_calendar,0xffdc449b.toInt()),
-            Triple("Mərsiyələr",R.drawable.ic_audio,0xffc74051.toInt()),
-            Triple("Hədislər",R.drawable.ic_hadith,0xff2c9a50.toInt()),
-            Triple("Kitabxana",R.drawable.ic_library,0xff3257cc.toInt()),
-            Triple("Dini sual-cavab",R.drawable.ic_hadith,0xffb69038.toInt()),
-            Triple("Mütəxəssislər",R.drawable.ic_profile,0xff387c6d.toInt()),
-            Triple("Kömək et",R.drawable.ic_heart,0xffb77b3f.toInt()),
-            Triple("Yadda saxla",R.drawable.ic_heart,0xff8a64b7.toInt()),
-            Triple("Zikr və təsbeh",R.drawable.ic_tasbeh,0xff128977.toInt()),
-            Triple("Qiblə kompası",R.drawable.ic_qibla,0xff367f91.toInt()),
-            Triple("Ayarlar",R.drawable.ic_settings,0xff528d71.toInt())
+        val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+
+        val heroHeight = (resources.displayMetrics.heightPixels * .39f).toInt().coerceIn(dp(305), dp(375))
+        val hero = FrameLayout(this)
+        hero.addView(MosqueSceneView(this, night), FrameLayout.LayoutParams(-1, -1))
+        hero.addView(
+            View(this).apply {
+                background = GradientDrawable(
+                    GradientDrawable.Orientation.TOP_BOTTOM,
+                    intArrayOf(0x33051d2b, 0x08051d2b, 0x44000000)
+                )
+            },
+            FrameLayout.LayoutParams(-1, -1)
         )
-        entries.forEach { (title,icon,color) ->
-            val cell=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER}
-            val ornateIcon=when(title){
-                "Quran"->R.drawable.alieba_ornament_quran
-                "Məfatih"->R.drawable.alieba_ornament_mafatih
-                "Əhkam"->R.drawable.alieba_ornament_ahkam
-                "Yeniliklər"->R.drawable.alieba_ornament_news
-                "Mərsiyələr"->R.drawable.alieba_ornament_mersiye
-                "Hədislər"->R.drawable.alieba_ornament_hadis
-                "Kitabxana"->R.drawable.alieba_ornament_library
-                "Məsləhət"->R.drawable.alieba_ornament_advice
-                "Dini sual-cavab"->R.drawable.alieba_ornament_advice
-                "Mütəxəssislər"->R.drawable.alieba_ornament_advice
-                "Kömək et"->R.drawable.alieba_ornament_donate
-                "Yadda saxla"->R.drawable.alieba_ornament_saved
-                "Zikr və təsbeh"->R.drawable.alieba_ornament_zikr
-                "Qiblə kompası"->R.drawable.alieba_ornament_qibla
-                "Ayarlar"->R.drawable.alieba_ornament_settings
-                else->0
-            }
-            // An independent native rounded tile is the only icon background.
-            // PNG artwork has its old rectangular backdrop removed and ample inset;
-            // this avoids visible square seams and cut-off decorations at every screen size.
-            val iconTile=FrameLayout(this).apply {
-                background=AliebaGoldTileDrawable(resources.displayMetrics.density)
-                clipChildren=false;clipToPadding=false
-                elevation=dp(1).toFloat()
-            }
-            iconTile.addView(ImageView(this).apply {
-                if(ornateIcon!=0) {setImageResource(ornateIcon);scaleType=ImageView.ScaleType.FIT_CENTER}
-                else {setImageResource(icon);setColorFilter(0xffa27b39.toInt());setPadding(dp(14),dp(14),dp(14),dp(14))}
-                contentDescription=title
-            },FrameLayout.LayoutParams(dp(77),dp(77),Gravity.CENTER))
-            cell.addView(iconTile,LinearLayout.LayoutParams(dp(82),dp(82)).apply {topMargin=dp(8)})
-            cell.addView(label(title,12f,0xff453728.toInt()).apply {typeface=Typeface.create("serif",Typeface.NORMAL)},LinearLayout.LayoutParams(-1,dp(29)))
-            cell.setOnClickListener {when(title) {"Ayarlar"->showSettings();"Yeniliklər"->showNews();"Dini sual-cavab"->startActivity(Intent(this,NativeQaActivity::class.java));"Mütəxəssislər"->startActivity(Intent(this,NativeQaActivity::class.java).putExtra("mode","experts"));"Kömək et"->startActivity(Intent(this,NativeDonateActivity::class.java));"Zikr və təsbeh"->startActivity(Intent(this,ZikrActivity::class.java));"Qiblə kompası"->startActivity(Intent(this,QiblaActivity::class.java));else->openWebsiteSection(title)}}
-            icons.addView(cell,android.widget.GridLayout.LayoutParams().apply {
-                width=0;height=dp(124)
-                columnSpec=android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED,1f)
-                setMargins(dp(1),dp(4),dp(1),dp(4))
-            })
+
+        val top = LinearLayout(this).apply {
+            gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(16), dp(11), dp(16), 0)
         }
-        sections.addView(icons,LinearLayout.LayoutParams(-1,-2));body.addView(sections)
-        scroll.addView(body);root.addView(scroll,FrameLayout.LayoutParams(-1,-1))
-        root.addView(bottomWave(),FrameLayout.LayoutParams(-1,dp(87),Gravity.BOTTOM))
+
+        val brandBox = FrameLayout(this).apply {
+            background = GradientDrawable().apply {
+                cornerRadius = dp(15).toFloat()
+                setColor(0x77113d63)
+                setStroke(dp(1), 0xccffffff.toInt())
+            }
+        }
+        brandBox.addView(
+            ImageView(this).apply {
+                setImageResource(R.drawable.ic_notification_mosque)
+                setColorFilter(Color.WHITE)
+                scaleType = ImageView.ScaleType.CENTER_INSIDE
+                setPadding(dp(9), dp(9), dp(9), dp(9))
+            },
+            FrameLayout.LayoutParams(-1, -1)
+        )
+        top.addView(brandBox, LinearLayout.LayoutParams(dp(53), dp(53)))
+
+        val names = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(10), 0, 0, 0)
+        }
+        names.addView(label("Ali-eba", 18f, Color.WHITE, true).apply { gravity = Gravity.START })
+        names.addView(label("İmanla yaşa...", 10f, 0xfff5f1e8.toInt()).apply { gravity = Gravity.START })
+        top.addView(names, LinearLayout.LayoutParams(0, dp(54), 1f))
+
+        val avatar = ImageView(this).apply {
+            setImageResource(R.drawable.ic_profile)
+            setColorFilter(Color.WHITE)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(0x99142d4d.toInt())
+                setStroke(dp(1), 0xbbffffff.toInt())
+            }
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            setOnClickListener { showProfile() }
+        }
+        top.addView(avatar, LinearLayout.LayoutParams(dp(49), dp(49)))
+        hero.addView(top, FrameLayout.LayoutParams(-1, dp(72), Gravity.TOP))
+
+        val quote = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(12), 0, dp(12), 0)
+        }
+        quote.addView(
+            label(
+                if (night) "Həyatını\nAllahın rəngi ilə boya" else "Hər gün\nAllaha daha yaxın",
+                24f, Color.WHITE, false
+            ).apply {
+                typeface = Typeface.create("serif", Typeface.NORMAL)
+                setLineSpacing(dp(1).toFloat(), 1.02f)
+                setShadowLayer(dp(3).toFloat(), 0f, dp(1).toFloat(), 0xaa00151d.toInt())
+            },
+            LinearLayout.LayoutParams(-1, -2)
+        )
+
+        val ornament = LinearLayout(this).apply {
+            gravity = Gravity.CENTER
+            orientation = LinearLayout.HORIZONTAL
+        }
+        ornament.addView(View(this).apply { setBackgroundColor(0xddffffff.toInt()) }, LinearLayout.LayoutParams(dp(43), dp(1)))
+        ornament.addView(label("✥", 11f, Color.WHITE, true), LinearLayout.LayoutParams(dp(24), dp(18)))
+        ornament.addView(View(this).apply { setBackgroundColor(0xddffffff.toInt()) }, LinearLayout.LayoutParams(dp(43), dp(1)))
+        quote.addView(ornament, LinearLayout.LayoutParams(-1, dp(21)))
+
+        quote.addView(
+            label(
+                if (night) "“Həqiqətən, qəlblər Allahı zikr etməklə rahatlıq tapır.”\n(Rəd, 28)"
+                else "“Allah zikr edənləri sevir.”\n(Bəqərə, 152)",
+                10.5f, Color.WHITE
+            ).apply {
+                setShadowLayer(dp(2).toFloat(), 0f, dp(1).toFloat(), 0xaa00151d.toInt())
+            },
+            LinearLayout.LayoutParams(-1, -2)
+        )
+        hero.addView(
+            quote,
+            FrameLayout.LayoutParams(-1, dp(132), Gravity.TOP).apply {
+                topMargin = dp(67)
+                leftMargin = dp(78)
+                rightMargin = dp(78)
+            }
+        )
+
+        val dateCard = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(12), dp(7), dp(9), dp(7))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(15).toFloat()
+                setColor(0xbb151515.toInt())
+                setStroke(dp(1), 0x33ffffff)
+            }
+        }
+        val dateTexts = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+        }
+        val normalDate = java.text.SimpleDateFormat("d MMMM, EEEE", java.util.Locale.forLanguageTag("az")).format(java.util.Date())
+        val hijri = android.icu.util.IslamicCalendar()
+        val hijriMonths = arrayOf(
+            "Məhərrəm","Səfər","Rəbiüləvvəl","Rəbiülaxır",
+            "Cəmadiyələvvəl","Cəmadiyəlaxır","Rəcəb","Şəban",
+            "Ramazan","Şəvval","Zilqədə","Zilhiccə"
+        )
+        val hijriText = "${hijri.get(java.util.Calendar.DAY_OF_MONTH)} " +
+            "${hijriMonths[hijri.get(java.util.Calendar.MONTH)]} " +
+            "${hijri.get(java.util.Calendar.YEAR)}"
+        dateTexts.addView(label(normalDate, 9.5f, Color.WHITE, true))
+        dateTexts.addView(label(hijriText, 9f, 0xfff4f0e8.toInt()))
+        dateCard.addView(dateTexts, LinearLayout.LayoutParams(0, -2, 1f))
+        dateCard.addView(
+            ImageView(this).apply {
+                setImageResource(R.drawable.ic_calendar)
+                setColorFilter(Color.WHITE)
+                setPadding(dp(3), dp(3), dp(3), dp(3))
+            },
+            LinearLayout.LayoutParams(dp(28), dp(28))
+        )
+        hero.addView(
+            dateCard,
+            FrameLayout.LayoutParams(dp(173), dp(55), Gravity.END or Gravity.BOTTOM).apply {
+                rightMargin = dp(10)
+                bottomMargin = dp(90)
+            }
+        )
+
+        hero.addView(
+            prayerStrip(),
+            FrameLayout.LayoutParams(-1, dp(82), Gravity.BOTTOM).apply {
+                leftMargin = dp(6)
+                rightMargin = dp(6)
+                bottomMargin = dp(4)
+            }
+        )
+        body.addView(hero, LinearLayout.LayoutParams(-1, heroHeight))
+
+        val sheet = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(15), dp(12), dp(19))
+            background = GradientDrawable().apply {
+                setColor(0xfffffdfb.toInt())
+                cornerRadii = floatArrayOf(
+                    dp(28).toFloat(), dp(28).toFloat(),
+                    dp(28).toFloat(), dp(28).toFloat(),
+                    0f, 0f, 0f, 0f
+                )
+            }
+            elevation = dp(4).toFloat()
+        }
+
+        val grab = View(this).apply {
+            background = GradientDrawable().apply {
+                setColor(0xffc7cbd4.toInt())
+                cornerRadius = dp(4).toFloat()
+            }
+        }
+        sheet.addView(
+            grab,
+            LinearLayout.LayoutParams(dp(50), dp(4)).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                bottomMargin = dp(10)
+            }
+        )
+
+        data class HomeItem(val title: String, val icon: Int, val color: Int, val target: String)
+
+        val items = listOf(
+            HomeItem("Quran", R.drawable.ic_quran, 0xff04b989.toInt(), "quran"),
+            HomeItem("Məfatih", R.drawable.ic_dua, 0xffff764c.toInt(), "mafatih"),
+            HomeItem("Əhkam", R.drawable.ic_rules, 0xff10aee4.toInt(), "ahkam"),
+            HomeItem("Yeniliklər", R.drawable.ic_calendar, 0xff7244e8.toInt(), "news"),
+            HomeItem("Dini sual", R.drawable.ic_chat, 0xffff3f78.toInt(), "qa"),
+            HomeItem("Mərsiyələr", R.drawable.ic_audio, 0xffd8202d.toInt(), "mersiye"),
+            HomeItem("Hədislər", R.drawable.ic_hadith, 0xff1bb742.toInt(), "hadis"),
+            HomeItem("Mütəxəssis", R.drawable.ic_profile, 0xffffb21d.toInt(), "experts"),
+            HomeItem("Kitabxana", R.drawable.ic_library, 0xff384ce0.toInt(), "kitabxana"),
+            HomeItem("Ayarlar", R.drawable.ic_settings, 0xff11c8c8.toInt(), "settings")
+        )
+
+        val grid = android.widget.GridLayout(this).apply {
+            columnCount = 5
+            alignmentMode = android.widget.GridLayout.ALIGN_BOUNDS
+            useDefaultMargins = false
+        }
+
+        items.forEachIndexed { index, item ->
+            val cell = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                setPadding(dp(2), dp(1), dp(2), dp(2))
+            }
+            val iconBox = FrameLayout(this).apply {
+                background = GradientDrawable(
+                    GradientDrawable.Orientation.TL_BR,
+                    intArrayOf(item.color, blend(item.color, Color.WHITE, .10f))
+                ).apply {
+                    cornerRadius = dp(16).toFloat()
+                    setStroke(dp(1), 0x33ffffff)
+                }
+                elevation = dp(2).toFloat()
+            }
+            iconBox.addView(
+                ImageView(this).apply {
+                    setImageResource(item.icon)
+                    setColorFilter(Color.WHITE)
+                    scaleType = ImageView.ScaleType.CENTER_INSIDE
+                    setPadding(dp(12), dp(12), dp(12), dp(12))
+                    contentDescription = item.title
+                },
+                FrameLayout.LayoutParams(-1, -1)
+            )
+            cell.addView(iconBox, LinearLayout.LayoutParams(dp(56), dp(56)))
+            cell.addView(
+                label(item.title, 9f, 0xff1c2740.toInt()).apply {
+                    setLines(2)
+                    gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                    setPadding(0, dp(5), 0, 0)
+                },
+                LinearLayout.LayoutParams(-1, dp(34))
+            )
+            cell.setOnClickListener {
+                when (item.target) {
+                    "news" -> showNews()
+                    "qa" -> startActivity(Intent(this, NativeQaActivity::class.java))
+                    "experts" -> startActivity(Intent(this, NativeQaActivity::class.java).putExtra("mode", "experts"))
+                    "settings" -> showSettings()
+                    else -> startActivity(Intent(this, NativeContentActivity::class.java).putExtra("section", item.target))
+                }
+            }
+            grid.addView(
+                cell,
+                android.widget.GridLayout.LayoutParams().apply {
+                    width = 0
+                    height = dp(101)
+                    columnSpec = android.widget.GridLayout.spec(index % 5, 1f)
+                    rowSpec = android.widget.GridLayout.spec(index / 5)
+                    setMargins(dp(1), dp(2), dp(1), dp(2))
+                }
+            )
+        }
+
+        sheet.addView(grid, LinearLayout.LayoutParams(-1, -2))
+        body.addView(sheet, LinearLayout.LayoutParams(-1, -2).apply { topMargin = -dp(7) })
+
+        scroll.addView(body)
+        root.addView(scroll, FrameLayout.LayoutParams(-1, -1))
+        root.addView(bottomWave(), FrameLayout.LayoutParams(-1, dp(87), Gravity.BOTTOM))
         return root
     }
     private fun blend(a:Int,b:Int,f:Float):Int = Color.rgb(
@@ -865,20 +1006,67 @@ root.addView(TextView(this).apply {
         (Color.blue(a)*(1-f)+Color.blue(b)*f).toInt()
     )
     private fun prayerStrip():View {
-        val t=PrayerClock.times(this)
-        val active=PrayerClock.activeKey(this)
-        val row=LinearLayout(this).apply {gravity=Gravity.TOP;orientation=LinearLayout.HORIZONTAL;setPadding(dp(5),0,dp(5),0)}
-        for(i in PrayerClock.keys.indices) {
-            val key=PrayerClock.keys[i]
-            val name=PrayerClock.displayNames[i]
-            val time=t[key] ?: "--:--"
-            val selected=active==key && time!="--:--"
-            val background=AliebaPrayerCardDrawable(resources.displayMetrics.density,selected)
-            val card=LinearLayout(this).apply {gravity=Gravity.CENTER;orientation=LinearLayout.VERTICAL;this.background=background;setPadding(0,dp(7),0,dp(1));elevation=if(selected)dp(2).toFloat() else 0f;setOnClickListener{prayerSettings()} }
-            card.addView(AliebaPrayerSymbolView(this,key),LinearLayout.LayoutParams(dp(14),dp(14)))
-            card.addView(label(name,7.2f,if(selected)0xffffe8a3.toInt() else Color.WHITE,selected).apply {setLines(2);setShadowLayer(if(selected)3f else 0f,0f,0f,0xfff2cb74.toInt())},LinearLayout.LayoutParams(-1,dp(20)))
-            card.addView(label(time,10f,if(selected)0xffffe09b.toInt() else Color.WHITE,true),LinearLayout.LayoutParams(-1,dp(16)))
-            row.addView(card,LinearLayout.LayoutParams(0,dp(62),1f).apply {setMargins(dp(1),0,dp(1),0)})
+        val t = PrayerClock.times(this)
+        val active = PrayerClock.activeKey(this)
+        val nowText = java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date())
+        val dawn = t["sunrise"] ?: "06:00"
+        val dusk = t["sunset"] ?: "19:00"
+        val night = nowText < dawn || nowText >= dusk
+
+        val row = LinearLayout(this).apply {
+            gravity = Gravity.BOTTOM
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(1), dp(2), dp(1), dp(2))
+        }
+
+        for (i in PrayerClock.keys.indices) {
+            val key = PrayerClock.keys[i]
+            val name = PrayerClock.displayNames[i]
+            val time = t[key] ?: "--:--"
+            val selected = active == key && time != "--:--"
+
+            val normalTop = 0xc92a3033.toInt()
+            val normalBottom = 0xde151c20.toInt()
+            val selectedTop = if (night) 0xffb77b00.toInt() else 0xff086ee8.toInt()
+            val selectedBottom = if (night) 0xff805300.toInt() else 0xff064ca9.toInt()
+
+            val background = GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(
+                    if (selected) selectedTop else normalTop,
+                    if (selected) selectedBottom else normalBottom
+                )
+            ).apply {
+                cornerRadius = dp(13).toFloat()
+                setStroke(
+                    dp(if (selected) 2 else 1),
+                    if (selected) {
+                        if (night) 0xffffd75a.toInt() else 0xff35c9ff.toInt()
+                    } else 0x55ffffff
+                )
+            }
+
+            val card = LinearLayout(this).apply {
+                gravity = Gravity.CENTER
+                orientation = LinearLayout.VERTICAL
+                this.background = background
+                setPadding(0, dp(5), 0, dp(3))
+                elevation = if (selected) dp(5).toFloat() else dp(1).toFloat()
+                setOnClickListener { prayerSettings() }
+            }
+
+            card.addView(label(name, 7.8f, Color.WHITE, selected).apply { setLines(2) }, LinearLayout.LayoutParams(-1, dp(28)))
+            card.addView(AliebaPrayerSymbolView(this, key), LinearLayout.LayoutParams(dp(16), dp(16)))
+            card.addView(
+                label(time, 10.2f, if (selected && night) 0xffffedaa.toInt() else Color.WHITE, true),
+                LinearLayout.LayoutParams(-1, dp(18))
+            )
+            row.addView(
+                card,
+                LinearLayout.LayoutParams(0, dp(75), 1f).apply {
+                    setMargins(dp(2), 0, dp(2), 0)
+                }
+            )
         }
         return row
     }

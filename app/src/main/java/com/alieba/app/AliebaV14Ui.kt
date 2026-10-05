@@ -329,43 +329,55 @@ class AliebaGoldTileDrawable(private val density:Float):Drawable(){
 
 object AliebaBottomNav {
     private fun dp(c:Context,x:Int)=(x*c.resources.displayMetrics.density).toInt()
-    private fun tintFor(section:String)=when(section){
-        "quran"->0xff10a995.toInt();"mafatih"->0xffec8e59.toInt();"ahkam"->0xff0696bd.toInt()
-        "news"->0xffd54b97.toInt();"donate"->0xffb78b3d.toInt();"advice"->0xffb78b3d.toInt();"hadis"->0xff269356.toInt();"mersiye"->0xffbc3c4c.toInt()
-        "kitabxana"->0xff3b5aca.toInt();"saved"->0xff9b6fc4.toInt();"settings"->0xff2c896e.toInt()
-        else->0xff255fd0.toInt()
-    }
+
     fun make(activity:Activity,section:String):View {
         val c:Context=activity
+
         fun open(to:String){
             when(to){
                 "home"->{
                     if(activity is MainActivity) return
-                    activity.startActivity(Intent(c,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+                    activity.startActivity(
+                        Intent(c,MainActivity::class.java)
+                            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    )
                     activity.finish()
                 }
-                "news"->if(activity !is NativeNewsActivity)activity.startActivity(Intent(c,NativeNewsActivity::class.java))
-                "settings"->if(activity !is NativeSettingsActivity)activity.startActivity(Intent(c,NativeSettingsActivity::class.java))
-                "donate"->if(activity !is NativeDonateActivity)activity.startActivity(Intent(c,NativeDonateActivity::class.java))
-                "advice"->if(activity !is NativeAdviceActivity)activity.startActivity(Intent(c,NativeAdviceActivity::class.java))
-                "ai"->AlertDialog.Builder(activity).setTitle("Alieba köməkçi")
-                    .setMessage("Alieba köməkçisi hazırlanır. Hazırda namaz vaxtlarına və ayarlara keçə bilərsiniz.")
-                    .setPositiveButton("Azan ayarları"){_,_->activity.startActivity(Intent(c,NativeSettingsActivity::class.java))}
-                    .setNegativeButton("Bağla",null).show()
-                else->if(!(activity is NativeContentActivity && section==to)){
-                    activity.startActivity(Intent(c,NativeContentActivity::class.java).putExtra("section",to))
+                "donate"->if(activity !is NativeDonateActivity)
+                    activity.startActivity(Intent(c,NativeDonateActivity::class.java))
+                "saved"->activity.startActivity(
+                    Intent(c,NativeContentActivity::class.java).putExtra("section","saved")
+                )
+                "more"->{
+                    val labels=arrayOf("Yeniliklər","Dini sual-cavab","Mütəxəssislər","Profil","Ayarlar")
+                    AlertDialog.Builder(activity).setTitle("Daha çox").setItems(labels){_,which->
+                        when(which){
+                            0->activity.startActivity(Intent(c,NativeNewsActivity::class.java))
+                            1->activity.startActivity(Intent(c,NativeQaActivity::class.java))
+                            2->activity.startActivity(Intent(c,NativeQaActivity::class.java).putExtra("mode","experts"))
+                            3->activity.startActivity(Intent(c,NativeProfileActivity::class.java))
+                            4->activity.startActivity(Intent(c,NativeSettingsActivity::class.java))
+                        }
+                    }.show()
                 }
+                "ai"->AlertDialog.Builder(activity)
+                    .setTitle("Alieba köməkçi")
+                    .setMessage("Alieba köməkçisi hazırlanır.")
+                    .setPositiveButton("Bağla",null).show()
             }
         }
+
         val frame=FrameLayout(c).apply {
-            background=AliebaIvoryWaveDrawable(c.resources.displayMetrics.density)
-            elevation=dp(c,6).toFloat()
-            clipChildren=false;clipToPadding=false
+            background=NativeWaveDrawable(c.resources.displayMetrics.density)
+            elevation=dp(c,7).toFloat()
+            clipChildren=false
+            clipToPadding=false
         }
+
         val line=LinearLayout(c).apply {
             orientation=LinearLayout.HORIZONTAL
             gravity=Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-            setPadding(0,dp(c,22),0,dp(c,6))
+            setPadding(0,dp(c,23),0,dp(c,7))
             clipChildren=false
         }
 
@@ -374,47 +386,59 @@ object AliebaBottomNav {
             return LinearLayout(c).apply {
                 orientation=LinearLayout.VERTICAL
                 gravity=Gravity.CENTER
-                setPadding(0,0,0,0)
                 setOnClickListener{open(to)}
-
-                addView(ImageView(c).apply {
-                    setImageResource(icon)
-                    scaleType=ImageView.ScaleType.CENTER_INSIDE
-                    setColorFilter(if(selected)0xff146c7e.toInt() else 0xff81683f.toInt())
-                },LinearLayout.LayoutParams(dp(c,22),dp(c,22)).apply {
-                    gravity=Gravity.CENTER_HORIZONTAL
-                })
-
-                addView(TextView(c).apply {
-                    text=title
-                    textSize=9.5f
-                    gravity=Gravity.CENTER
-                    setTextColor(if(selected)0xff195f74.toInt() else 0xff584736.toInt())
-                    isSingleLine=true
-                    includeFontPadding=false
-                    setPadding(0,dp(c,4),0,0)
-                },LinearLayout.LayoutParams(-1,dp(c,20)))
+                addView(
+                    ImageView(c).apply {
+                        setImageResource(icon)
+                        scaleType=ImageView.ScaleType.CENTER_INSIDE
+                        setColorFilter(if(selected)0xff245ee9.toInt() else 0xff23314d.toInt())
+                    },
+                    LinearLayout.LayoutParams(dp(c,23),dp(c,23)).apply {
+                        gravity=Gravity.CENTER_HORIZONTAL
+                    }
+                )
+                addView(
+                    TextView(c).apply {
+                        text=title
+                        textSize=9f
+                        gravity=Gravity.CENTER
+                        setTextColor(if(selected)0xff245ee9.toInt() else 0xff23314d.toInt())
+                        if(selected) typeface=android.graphics.Typeface.DEFAULT_BOLD
+                        isSingleLine=true
+                        includeFontPadding=false
+                        setPadding(0,dp(c,4),0,0)
+                    },
+                    LinearLayout.LayoutParams(-1,dp(c,20))
+                )
             }
         }
 
-        // Five equal columns = 10/30/50/70/90% centres on every screen width.
-        line.addView(cell("Ana səhifə",R.drawable.ic_home,"home"),LinearLayout.LayoutParams(0,dp(c,55),1f))
-        line.addView(cell("Yadda saxla",R.drawable.ic_heart,"saved"),LinearLayout.LayoutParams(0,dp(c,55),1f))
-        line.addView(View(c),LinearLayout.LayoutParams(0,dp(c,55),1f))
-        line.addView(cell("Yeniliklər",R.drawable.ic_calendar,"news"),LinearLayout.LayoutParams(0,dp(c,55),1f))
-        line.addView(cell("Kömək et",R.drawable.ic_heart,"donate"),LinearLayout.LayoutParams(0,dp(c,55),1f))
-
+        line.addView(cell("Ana Səhifə",R.drawable.ic_home,"home"),LinearLayout.LayoutParams(0,dp(c,56),1f))
+        line.addView(cell("Kömək et",R.drawable.ic_heart,"donate"),LinearLayout.LayoutParams(0,dp(c,56),1f))
+        line.addView(View(c),LinearLayout.LayoutParams(0,dp(c,56),1f))
+        line.addView(cell("Sevimlilər",R.drawable.ic_heart,"saved"),LinearLayout.LayoutParams(0,dp(c,56),1f))
+        line.addView(cell("Daha çox",R.drawable.ic_settings,"more"),LinearLayout.LayoutParams(0,dp(c,56),1f))
         frame.addView(line,FrameLayout.LayoutParams(-1,-1))
 
         val center=FrameLayout(c).apply {
-            elevation=dp(c,4).toFloat()
+            background=GradientDrawable().apply {
+                shape=GradientDrawable.OVAL
+                setColor(0xff245ee9.toInt())
+                setStroke(dp(c,5),0xffeef3ff.toInt())
+            }
+            elevation=dp(c,7).toFloat()
             setOnClickListener{open("ai")}
         }
-        center.addView(ImageView(c).apply {
-            setImageResource(R.drawable.alieba_gold_ai)
-            scaleType=ImageView.ScaleType.FIT_CENTER
-            contentDescription="Alieba köməkçi"
-        },FrameLayout.LayoutParams(-1,-1))
+        center.addView(
+            ImageView(c).apply {
+                setImageResource(R.drawable.ic_notification_mosque)
+                setColorFilter(Color.WHITE)
+                scaleType=ImageView.ScaleType.CENTER_INSIDE
+                setPadding(dp(c,17),dp(c,17),dp(c,17),dp(c,17))
+                contentDescription="Alieba köməkçi"
+            },
+            FrameLayout.LayoutParams(-1,-1)
+        )
         frame.addView(center,FrameLayout.LayoutParams(dp(c,76),dp(c,76),Gravity.TOP or Gravity.CENTER_HORIZONTAL))
         return frame
     }
