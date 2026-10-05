@@ -51,7 +51,17 @@ class MainActivity : Activity() {
 
         PrayerClock.fetchAndSchedule(this) { if(it && currentPage == "home") showHome() }
         AliebaUpdateChecker.check(this)
-        if (intent?.getBooleanExtra("open_news",false)==true) showNews() else showHome()
+
+        // V21.4: HabibApp-style mosque home stays as the real home.
+        com.google.firebase.messaging.FirebaseMessaging.getInstance()
+            .subscribeToTopic("alieba_content")
+        MobileApi.heartbeat(this)
+        MobileApi.registerDevice(this)
+        requestNativeNotificationPermission()
+
+        showHome()
+        routePushIntent(intent)
+
         // Users upgrading from V12 have already finished the older three-step setup.
         if(setup.getBoolean("notifications",false)) window.decorView.post { if(!isFinishing) showFirstPermissionGuide() }
     }
@@ -63,9 +73,59 @@ class MainActivity : Activity() {
             PrayerClock.scheduleToday(this)
         }
         AliebaUpdateChecker.resumePending(this)
+        MobileApi.heartbeat(this)
     }
 
-    override fun onNewIntent(i:Intent) {super.onNewIntent(i);setIntent(i);if(i.getBooleanExtra("open_news",false))showNews()}
+    override fun onNewIntent(i:Intent) {
+        super.onNewIntent(i)
+        setIntent(i)
+        if (!routePushIntent(i) && i.getBooleanExtra("open_news", false)) {
+            showNews()
+        }
+    }
+
+    private fun requestNativeNotificationPermission() {
+        if (
+            android.os.Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(
+                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                43
+            )
+        }
+    }
+
+    private fun routePushIntent(i: Intent?): Boolean {
+        when (i?.getStringExtra("open_type")) {
+            "news" -> {
+                startActivity(
+                    Intent(this, NativeNewsActivity::class.java)
+                        .putExtra("news_id", i.getIntExtra("item_id", 0))
+                )
+                return true
+            }
+
+            "qa", "qa_answer" -> {
+                startActivity(
+                    Intent(this, NativeQaActivity::class.java)
+                        .putExtra("mode", "my")
+                )
+                return true
+            }
+
+            "content" -> {
+                startActivity(
+                    Intent(this, NativeContentActivity::class.java)
+                        .putExtra("section", i.getStringExtra("section") ?: "hadis")
+                        .putExtra("entry_id", i.getIntExtra("item_id", 0))
+                )
+                return true
+            }
+        }
+        return false
+    }
 
     private fun showHome() {
         currentPage="home"
@@ -744,7 +804,8 @@ root.addView(TextView(this).apply {
             Triple("Mərsiyələr",R.drawable.ic_audio,0xffc74051.toInt()),
             Triple("Hədislər",R.drawable.ic_hadith,0xff2c9a50.toInt()),
             Triple("Kitabxana",R.drawable.ic_library,0xff3257cc.toInt()),
-            Triple("Məsləhət",R.drawable.ic_hadith,0xffb69038.toInt()),
+            Triple("Dini sual-cavab",R.drawable.ic_hadith,0xffb69038.toInt()),
+            Triple("Mütəxəssislər",R.drawable.ic_profile,0xff387c6d.toInt()),
             Triple("Kömək et",R.drawable.ic_heart,0xffb77b3f.toInt()),
             Triple("Yadda saxla",R.drawable.ic_heart,0xff8a64b7.toInt()),
             Triple("Zikr və təsbeh",R.drawable.ic_tasbeh,0xff128977.toInt()),
@@ -784,7 +845,7 @@ root.addView(TextView(this).apply {
             },FrameLayout.LayoutParams(dp(77),dp(77),Gravity.CENTER))
             cell.addView(iconTile,LinearLayout.LayoutParams(dp(82),dp(82)).apply {topMargin=dp(8)})
             cell.addView(label(title,12f,0xff453728.toInt()).apply {typeface=Typeface.create("serif",Typeface.NORMAL)},LinearLayout.LayoutParams(-1,dp(29)))
-            cell.setOnClickListener {when(title) {"Ayarlar"->showSettings();"Yeniliklər"->showNews();"Məsləhət"->startActivity(Intent(this,NativeAdviceActivity::class.java));"Kömək et"->startActivity(Intent(this,NativeDonateActivity::class.java));"Zikr və təsbeh"->startActivity(Intent(this,ZikrActivity::class.java));"Qiblə kompası"->startActivity(Intent(this,QiblaActivity::class.java));else->openWebsiteSection(title)}}
+            cell.setOnClickListener {when(title) {"Ayarlar"->showSettings();"Yeniliklər"->showNews();"Dini sual-cavab"->startActivity(Intent(this,NativeQaActivity::class.java));"Mütəxəssislər"->startActivity(Intent(this,NativeQaActivity::class.java).putExtra("mode","experts"));"Kömək et"->startActivity(Intent(this,NativeDonateActivity::class.java));"Zikr və təsbeh"->startActivity(Intent(this,ZikrActivity::class.java));"Qiblə kompası"->startActivity(Intent(this,QiblaActivity::class.java));else->openWebsiteSection(title)}}
             icons.addView(cell,android.widget.GridLayout.LayoutParams().apply {
                 width=0;height=dp(124)
                 columnSpec=android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED,1f)
@@ -831,7 +892,7 @@ root.addView(TextView(this).apply {
         startActivity(Intent(this,NativeContentActivity::class.java).putExtra("section",slug))
     }
     private fun showNews() {
-        startActivity(Intent(this,NativeContentActivity::class.java).putExtra("section","news"))
+        startActivity(Intent(this, NativeNewsActivity::class.java))
     }
     private fun showSettings() {
         startActivity(Intent(this,NativeSettingsActivity::class.java))

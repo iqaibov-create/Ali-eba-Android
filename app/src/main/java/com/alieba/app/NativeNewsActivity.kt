@@ -119,6 +119,8 @@ class NativeNewsActivity : Activity() {
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = NativeUi.card(this@NativeNewsActivity)
+            elevation = NativeUi.dp(this@NativeNewsActivity, 3).toFloat()
+            clipToOutline = true
             setOnClickListener { openNews(item.optInt("id")) }
         }
 
@@ -133,7 +135,7 @@ class NativeNewsActivity : Activity() {
                         diskCacheKey("news_${item.optInt("id")}")
                     }
                 },
-                LinearLayout.LayoutParams(-1, NativeUi.dp(this, 205))
+                LinearLayout.LayoutParams(-1, NativeUi.dp(this, 228))
             )
         }
 
@@ -147,7 +149,11 @@ class NativeNewsActivity : Activity() {
             )
         }
 
-        copy.addView(NativeUi.text(this, item.optString("title"), 20f, NativeUi.ink, true))
+        copy.addView(
+            NativeUi.text(this, item.optString("title"), 24f, NativeUi.ink, true).apply {
+                setLineSpacing(NativeUi.dp(this@NativeNewsActivity, 2).toFloat(), 1.0f)
+            }
+        )
         copy.addView(
             NativeUi.text(this, item.optString("date"), 10f, NativeUi.gold, true).apply {
                 setPadding(0, NativeUi.dp(this@NativeNewsActivity, 6), 0, NativeUi.dp(this@NativeNewsActivity, 9))
@@ -170,8 +176,8 @@ class NativeNewsActivity : Activity() {
     }
 
     private fun stat(icon: String, value: String) =
-        NativeUi.text(this, "$icon  $value", 11f, NativeUi.muted, true).apply {
-            setPadding(0, 0, NativeUi.dp(this@NativeNewsActivity, 13), 0)
+        NativeUi.text(this, "$icon  $value", 13f, NativeUi.muted, true).apply {
+            setPadding(0, 0, NativeUi.dp(this@NativeNewsActivity, 15), 0)
         }
 
     private fun openNews(id: Int) {
@@ -213,13 +219,17 @@ class NativeNewsActivity : Activity() {
                         diskCacheKey("news_detail_${item.optInt("id")}")
                     }
                 },
-                LinearLayout.LayoutParams(-1, NativeUi.dp(this, 235)).apply {
+                LinearLayout.LayoutParams(-1, NativeUi.dp(this, 265)).apply {
                     bottomMargin = NativeUi.dp(this@NativeNewsActivity, 14)
                 }
             )
         }
 
-        body.addView(NativeUi.text(this, item.optString("title"), 28f, NativeUi.ink, true))
+        body.addView(
+            NativeUi.text(this, item.optString("title"), 32f, NativeUi.ink, true).apply {
+                setLineSpacing(NativeUi.dp(this@NativeNewsActivity, 2).toFloat(), 1.0f)
+            }
+        )
         body.addView(
             NativeUi.text(this, item.optString("date"), 10f, NativeUi.gold, true).apply {
                 setPadding(0, NativeUi.dp(this@NativeNewsActivity, 7), 0, NativeUi.dp(this@NativeNewsActivity, 13))

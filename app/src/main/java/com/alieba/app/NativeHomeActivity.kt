@@ -1,8 +1,11 @@
 package com.alieba.app
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -12,25 +15,29 @@ import com.google.firebase.messaging.FirebaseMessaging
 
 class NativeHomeActivity : Activity() {
     private lateinit var body: LinearLayout
-    private var setupLaunched = false
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         NativeUi.setBars(this)
 
-        if (!setupReady()) {
-            setupLaunched = true
-            startActivity(Intent(this, MainActivity::class.java))
-            return
-        }
+        // V21.2: köhnə qızılı MainActivity ana səhifəsinə artıq keçmir.
+        // Mövcud məkan/azan ayarları saxlanılır, tətbiq birbaşa ağ-yaşıl native ana səhifəni açır.
+        getSharedPreferences("alieba_setup", MODE_PRIVATE)
+            .edit()
+            .putBoolean("completed", true)
+            .apply()
 
         build()
         routeIntent(intent)
+        requestNotificationPermission()
 
         FirebaseMessaging.getInstance().subscribeToTopic("alieba_news")
         FirebaseMessaging.getInstance().subscribeToTopic("alieba_content")
         MobileApi.heartbeat(this)
         MobileApi.registerDevice(this)
+
+        // V21.3: native ana səhifədə tətbiqdaxili yeniləmə aktivdir.
+        AliebaUpdateChecker.check(this)
 
         PrayerClock.fetchAndSchedule(this) {
             if (!isFinishing && !isDestroyed) refreshPrayerBox()
@@ -39,15 +46,21 @@ class NativeHomeActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        PrayerClock.scheduleToday(this)
+        MobileApi.heartbeat(this)
+        AliebaUpdateChecker.resumePending(this)
+    }
 
-        if (setupLaunched && setupReady()) {
-            setupLaunched = false
-            build()
-        }
-
-        if (setupReady()) {
-            PrayerClock.scheduleToday(this)
-            MobileApi.heartbeat(this)
+    private fun requestNotificationPermission() {
+        if (
+            Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                2102
+            )
         }
     }
 
@@ -76,6 +89,7 @@ class NativeHomeActivity : Activity() {
             "content" -> startActivity(
                 Intent(this, NativeContentActivity::class.java)
                     .putExtra("section", intent.getStringExtra("section") ?: "hadis")
+                    .putExtra("entry_id", intent.getIntExtra("item_id", 0))
             )
         }
     }

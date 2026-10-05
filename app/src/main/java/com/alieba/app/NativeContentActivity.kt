@@ -15,6 +15,7 @@ import android.text.TextWatcher
 import android.view.Gravity
 import android.view.View
 import android.widget.*
+import coil.load
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -51,6 +52,7 @@ class NativeContentActivity : Activity() {
     private var categories = JSONArray()
     private var entries = JSONArray()
     private var query = ""
+    private var pendingEntryId = 0
 
     private var audio: MediaPlayer? = null
 
@@ -66,6 +68,8 @@ class NativeContentActivity : Activity() {
         window.navigationBarColor = Color.WHITE
         window.decorView.systemUiVisibility =
             View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+
+        pendingEntryId = intent.getIntExtra("entry_id", 0)
 
         section = intent.getStringExtra("section")
             ?.takeIf {
@@ -332,7 +336,22 @@ class NativeContentActivity : Activity() {
 
             categories = json.optJSONArray("categories") ?: JSONArray()
             entries = json.optJSONArray("items") ?: JSONArray()
-            drawContent()
+
+            if (pendingEntryId > 0) {
+                var opened = false
+                for (i in 0 until entries.length()) {
+                    val item = entries.optJSONObject(i) ?: continue
+                    if (item.optInt("id") == pendingEntryId) {
+                        opened = true
+                        pendingEntryId = 0
+                        showEntry(item)
+                        break
+                    }
+                }
+                if (!opened) drawContent()
+            } else {
+                drawContent()
+            }
         }
     }
 
@@ -386,25 +405,47 @@ class NativeContentActivity : Activity() {
 
                 val row = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
-                    setPadding(dp(16), dp(15), dp(16), dp(15))
-                    background = shape(Color.WHITE, 15, line)
+                    background = shape(Color.WHITE, 17, line)
+                    elevation = dp(2).toFloat()
+                    clipToOutline = true
                     setOnClickListener { showEntry(entry) }
                 }
 
-                row.addView(text(title, 17f, ink, true))
-
-                if (summary.isNotBlank()) {
+                val imageUrl = entry.optString("image_file")
+                if (imageUrl.isNotBlank()) {
                     row.addView(
-                        text(summary, 13f, muted).apply {
-                            setPadding(0, dp(5), 0, 0)
+                        ImageView(this).apply {
+                            scaleType = ImageView.ScaleType.CENTER_CROP
+                            load(MobileApi.absolute(imageUrl)) {
+                                crossfade(true)
+                                memoryCacheKey("content_${section}_${entry.optInt("id")}")
+                                diskCacheKey("content_${section}_${entry.optInt("id")}")
+                            }
+                        },
+                        LinearLayout.LayoutParams(-1, dp(205))
+                    )
+                }
+
+                val copy = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(16), dp(14), dp(16), dp(15))
+                }
+                copy.addView(text(title, 21f, ink, true))
+                if (summary.isNotBlank()) {
+                    copy.addView(
+                        text(summary, 12f, muted).apply {
+                            setMaxLines(2)
+                            ellipsize = android.text.TextUtils.TruncateAt.END
+                            setPadding(0, dp(6), 0, 0)
                         }
                     )
                 }
+                row.addView(copy)
 
                 listBox.addView(
                     row,
                     LinearLayout.LayoutParams(-1, -2).apply {
-                        bottomMargin = dp(9)
+                        bottomMargin = dp(13)
                     }
                 )
             }
@@ -491,6 +532,25 @@ class NativeContentActivity : Activity() {
     private fun showEntry(entry: JSONObject) {
         stopAudio()
         body.removeAllViews()
+
+        val imageUrl = entry.optString("image_file")
+        if (imageUrl.isNotBlank()) {
+            body.addView(
+                ImageView(this).apply {
+                    scaleType = ImageView.ScaleType.CENTER_CROP
+                    background = shape(0xffeef3f1.toInt(), 16)
+                    clipToOutline = true
+                    load(MobileApi.absolute(imageUrl)) {
+                        crossfade(true)
+                        memoryCacheKey("content_reader_${section}_${entry.optInt("id")}")
+                        diskCacheKey("content_reader_${section}_${entry.optInt("id")}")
+                    }
+                },
+                LinearLayout.LayoutParams(-1, dp(245)).apply {
+                    bottomMargin = dp(15)
+                }
+            )
+        }
 
         heading(entry.optString("title"))
 

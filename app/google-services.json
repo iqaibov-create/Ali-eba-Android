@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "625594639180-bes00e6lus3fqvlsl1b5qo7voqaphe43.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.alieba.app",
+            "certificate_hash": "556b69cf8c07d885a9d7ee5b2ce03e269c91d599"
+          }
+        },
+        {
           "client_id": "625594639180-jg5n4dohc6e71mpop43bn39jjtbrvfkc.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

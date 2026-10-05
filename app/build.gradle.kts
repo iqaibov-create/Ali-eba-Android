@@ -12,13 +12,40 @@ android {
         applicationId = "com.alieba.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 31
-        versionName = "21.0"
+        versionCode = 34
+        versionName = "21.4"
     }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    val aliebaKeystorePath = System.getenv("ALIEBA_KEYSTORE_PATH")
+    val aliebaStorePassword = System.getenv("ALIEBA_KEYSTORE_PASSWORD")
+    val aliebaKeyAlias = System.getenv("ALIEBA_KEY_ALIAS") ?: "alieba"
+    val aliebaKeyPassword =
+        System.getenv("ALIEBA_KEY_PASSWORD")?.takeIf { it.isNotBlank() }
+            ?: aliebaStorePassword
+
+    signingConfigs {
+        if (!aliebaKeystorePath.isNullOrBlank()) {
+            create("aliebaStable") {
+                storeFile = file(aliebaKeystorePath)
+                storePassword = aliebaStorePassword
+                keyAlias = aliebaKeyAlias
+                keyPassword = aliebaKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+            if (!aliebaKeystorePath.isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("aliebaStable")
+            }
+        }
     }
 }
 

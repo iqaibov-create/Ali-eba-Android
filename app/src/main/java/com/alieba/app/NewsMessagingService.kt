@@ -61,7 +61,7 @@ class NewsMessagingService : FirebaseMessagingService() {
         val itemId = message.data["id"]?.toIntOrNull() ?: 0
         val section = message.data["section"] ?: ""
 
-        val open = Intent(this, NativeHomeActivity::class.java)
+        val open = Intent(this, MainActivity::class.java)
             .putExtra("open_type", type)
             .putExtra("item_id", itemId)
             .putExtra("section", section)
