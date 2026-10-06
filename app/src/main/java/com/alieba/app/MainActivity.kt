@@ -887,7 +887,7 @@ root.addView(TextView(this).apply {
         val sheet = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(12), dp(18), dp(12), dp(20))
-            background = Color.WHITE
+            setBackgroundColor(Color.WHITE)
         }
 
         data class HomeItem(val title: String, val icon: Int, val color: Int, val target: String)
