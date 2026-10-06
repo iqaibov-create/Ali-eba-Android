@@ -722,21 +722,25 @@ root.addView(TextView(this).apply {
         val root = FrameLayout(this).apply {
             background = AliebaPatternDrawable(resources.displayMetrics.density)
         }
+
         val scroll = ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
-            setPadding(0, 0, 0, dp(92))
+            setPadding(0, 0, 0, dp(90))
         }
-        val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val body = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
 
-        val heroHeight = (resources.displayMetrics.heightPixels * .39f).toInt().coerceIn(dp(305), dp(375))
+        // MƏSCİD HERO: burada yalnız logo/profil + əsas mətn var.
+        // Tarix və namaz kartları ayrıca aşağıdadır ki, üst-üstə düşməsin.
         val hero = FrameLayout(this)
         hero.addView(MosqueSceneView(this, night), FrameLayout.LayoutParams(-1, -1))
         hero.addView(
             View(this).apply {
                 background = GradientDrawable(
                     GradientDrawable.Orientation.TOP_BOTTOM,
-                    intArrayOf(0x33051d2b, 0x08051d2b, 0x44000000)
+                    intArrayOf(0x55051d2b, 0x10051d2b, 0x66000000)
                 )
             },
             FrameLayout.LayoutParams(-1, -1)
@@ -745,110 +749,104 @@ root.addView(TextView(this).apply {
         val top = LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
             orientation = LinearLayout.HORIZONTAL
-            setPadding(dp(16), dp(11), dp(16), 0)
+            setPadding(dp(16), dp(12), dp(16), 0)
         }
 
-        val brandBox = FrameLayout(this).apply {
+        val brandIcon = ImageView(this).apply {
+            setImageResource(R.drawable.ic_notification_mosque)
+            setColorFilter(Color.WHITE)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dp(10), dp(10), dp(10), dp(10))
             background = GradientDrawable().apply {
-                cornerRadius = dp(15).toFloat()
-                setColor(0x77113d63)
-                setStroke(dp(1), 0xccffffff.toInt())
+                cornerRadius = dp(14).toFloat()
+                setColor(0x66113d63)
+                setStroke(dp(1), 0x99ffffff.toInt())
             }
         }
-        brandBox.addView(
-            ImageView(this).apply {
-                setImageResource(R.drawable.ic_notification_mosque)
-                setColorFilter(Color.WHITE)
-                scaleType = ImageView.ScaleType.CENTER_INSIDE
-                setPadding(dp(9), dp(9), dp(9), dp(9))
-            },
-            FrameLayout.LayoutParams(-1, -1)
-        )
-        top.addView(brandBox, LinearLayout.LayoutParams(dp(53), dp(53)))
+        top.addView(brandIcon, LinearLayout.LayoutParams(dp(50), dp(50)))
 
-        val names = LinearLayout(this).apply {
+        val brandText = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(10), 0, 0, 0)
         }
-        names.addView(label("Ali-eba", 18f, Color.WHITE, true).apply { gravity = Gravity.START })
-        names.addView(label("İmanla yaşa...", 10f, 0xfff5f1e8.toInt()).apply { gravity = Gravity.START })
-        top.addView(names, LinearLayout.LayoutParams(0, dp(54), 1f))
+        brandText.addView(label("Ali-eba", 18f, Color.WHITE, true).apply { gravity = Gravity.START })
+        brandText.addView(label("İmanla yaşa...", 10f, 0xfff5f1e8.toInt()).apply { gravity = Gravity.START })
+        top.addView(brandText, LinearLayout.LayoutParams(0, dp(52), 1f))
 
-        val avatar = ImageView(this).apply {
-            setImageResource(R.drawable.ic_profile)
-            setColorFilter(Color.WHITE)
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(0x99142d4d.toInt())
-                setStroke(dp(1), 0xbbffffff.toInt())
-            }
-            setPadding(dp(12), dp(12), dp(12), dp(12))
-            setOnClickListener { showProfile() }
-        }
-        top.addView(avatar, LinearLayout.LayoutParams(dp(49), dp(49)))
-        hero.addView(top, FrameLayout.LayoutParams(-1, dp(72), Gravity.TOP))
+        top.addView(
+            ImageView(this).apply {
+                setImageResource(R.drawable.ic_profile)
+                setColorFilter(Color.WHITE)
+                setPadding(dp(12), dp(12), dp(12), dp(12))
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(0x66142d4d)
+                    setStroke(dp(1), 0x99ffffff.toInt())
+                }
+                setOnClickListener { showProfile() }
+            },
+            LinearLayout.LayoutParams(dp(48), dp(48))
+        )
+        hero.addView(top, FrameLayout.LayoutParams(-1, dp(74), Gravity.TOP))
 
-        val quote = LinearLayout(this).apply {
+        val heroText = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(dp(12), 0, dp(12), 0)
+            setPadding(dp(34), 0, dp(34), 0)
         }
-        quote.addView(
+        heroText.addView(
             label(
-                if (night) "Həyatını\nAllahın rəngi ilə boya" else "Hər gün\nAllaha daha yaxın",
-                24f, Color.WHITE, false
+                if (night) "Həyatını Allahın rəngi ilə boya" else "Hər gün Allaha daha yaxın",
+                23f,
+                Color.WHITE,
+                false
             ).apply {
                 typeface = Typeface.create("serif", Typeface.NORMAL)
-                setLineSpacing(dp(1).toFloat(), 1.02f)
+                gravity = Gravity.CENTER
+                setLines(2)
                 setShadowLayer(dp(3).toFloat(), 0f, dp(1).toFloat(), 0xaa00151d.toInt())
-            },
-            LinearLayout.LayoutParams(-1, -2)
-        )
-
-        val ornament = LinearLayout(this).apply {
-            gravity = Gravity.CENTER
-            orientation = LinearLayout.HORIZONTAL
-        }
-        ornament.addView(View(this).apply { setBackgroundColor(0xddffffff.toInt()) }, LinearLayout.LayoutParams(dp(43), dp(1)))
-        ornament.addView(label("✥", 11f, Color.WHITE, true), LinearLayout.LayoutParams(dp(24), dp(18)))
-        ornament.addView(View(this).apply { setBackgroundColor(0xddffffff.toInt()) }, LinearLayout.LayoutParams(dp(43), dp(1)))
-        quote.addView(ornament, LinearLayout.LayoutParams(-1, dp(21)))
-
-        quote.addView(
-            label(
-                if (night) "“Həqiqətən, qəlblər Allahı zikr etməklə rahatlıq tapır.”\n(Rəd, 28)"
-                else "“Allah zikr edənləri sevir.”\n(Bəqərə, 152)",
-                10.5f, Color.WHITE
-            ).apply {
-                setShadowLayer(dp(2).toFloat(), 0f, dp(1).toFloat(), 0xaa00151d.toInt())
-            },
-            LinearLayout.LayoutParams(-1, -2)
-        )
-        hero.addView(
-            quote,
-            FrameLayout.LayoutParams(-1, dp(132), Gravity.TOP).apply {
-                topMargin = dp(67)
-                leftMargin = dp(78)
-                rightMargin = dp(78)
             }
         )
+        heroText.addView(
+            View(this).apply { setBackgroundColor(0xddffffff.toInt()) },
+            LinearLayout.LayoutParams(dp(74), dp(1)).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                topMargin = dp(10)
+                bottomMargin = dp(10)
+            }
+        )
+        heroText.addView(
+            label(
+                if (night) "Qəlblər Allahı zikr etməklə rahatlıq tapır. • Rəd, 28"
+                else "Allah zikr edənləri sevir. • Bəqərə, 152",
+                10.5f,
+                Color.WHITE
+            ).apply {
+                gravity = Gravity.CENTER
+                setLines(2)
+                setShadowLayer(dp(2).toFloat(), 0f, dp(1).toFloat(), 0xaa00151d.toInt())
+            }
+        )
+        hero.addView(heroText, FrameLayout.LayoutParams(-1, dp(132), Gravity.CENTER))
 
-        val dateCard = LinearLayout(this).apply {
+        body.addView(hero, LinearLayout.LayoutParams(-1, dp(310)))
+
+        // TARİX ayrıca blokdur.
+        val dateBlock = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(12), dp(7), dp(9), dp(7))
+            setPadding(dp(15), dp(10), dp(15), dp(10))
             background = GradientDrawable().apply {
-                cornerRadius = dp(15).toFloat()
-                setColor(0xbb151515.toInt())
-                setStroke(dp(1), 0x33ffffff)
+                setColor(0xfffffbf3.toInt())
+                setStroke(dp(1), 0xffdbc187.toInt())
             }
         }
-        val dateTexts = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-        }
-        val normalDate = java.text.SimpleDateFormat("d MMMM, EEEE", java.util.Locale.forLanguageTag("az")).format(java.util.Date())
+
+        val normalDate = java.text.SimpleDateFormat(
+            "d MMMM, EEEE",
+            java.util.Locale.forLanguageTag("az")
+        ).format(java.util.Date())
         val hijri = android.icu.util.IslamicCalendar()
         val hijriMonths = arrayOf(
             "Məhərrəm","Səfər","Rəbiüləvvəl","Rəbiülaxır",
@@ -858,65 +856,41 @@ root.addView(TextView(this).apply {
         val hijriText = "${hijri.get(java.util.Calendar.DAY_OF_MONTH)} " +
             "${hijriMonths[hijri.get(java.util.Calendar.MONTH)]} " +
             "${hijri.get(java.util.Calendar.YEAR)}"
-        dateTexts.addView(label(normalDate, 9.5f, Color.WHITE, true))
-        dateTexts.addView(label(hijriText, 9f, 0xfff4f0e8.toInt()))
-        dateCard.addView(dateTexts, LinearLayout.LayoutParams(0, -2, 1f))
-        dateCard.addView(
+
+        val dates = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        dates.addView(label(normalDate, 11f, 0xff183f37.toInt(), true).apply { gravity = Gravity.START })
+        dates.addView(label(hijriText, 9.5f, 0xff8a7657.toInt()).apply { gravity = Gravity.START })
+        dateBlock.addView(dates, LinearLayout.LayoutParams(0, -2, 1f))
+        dateBlock.addView(
             ImageView(this).apply {
                 setImageResource(R.drawable.ic_calendar)
-                setColorFilter(Color.WHITE)
-                setPadding(dp(3), dp(3), dp(3), dp(3))
+                setColorFilter(0xff8a7657.toInt())
+                setPadding(dp(4), dp(4), dp(4), dp(4))
             },
-            LinearLayout.LayoutParams(dp(28), dp(28))
+            LinearLayout.LayoutParams(dp(32), dp(32))
         )
-        hero.addView(
-            dateCard,
-            FrameLayout.LayoutParams(dp(173), dp(55), Gravity.END or Gravity.BOTTOM).apply {
-                rightMargin = dp(10)
-                bottomMargin = dp(90)
-            }
-        )
+        body.addView(dateBlock, LinearLayout.LayoutParams(-1, dp(60)))
 
-        hero.addView(
-            prayerStrip(),
-            FrameLayout.LayoutParams(-1, dp(82), Gravity.BOTTOM).apply {
-                leftMargin = dp(6)
-                rightMargin = dp(6)
-                bottomMargin = dp(4)
+        // NAMAZ kartları ayrıca paneldədir.
+        val prayerPanel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(7), dp(7), dp(7), dp(9))
+            background = GradientDrawable().apply {
+                setColor(0xfffff7e8.toInt())
+                setStroke(dp(1), 0xffd8b56a.toInt())
             }
-        )
-        body.addView(hero, LinearLayout.LayoutParams(-1, heroHeight))
+        }
+        prayerPanel.addView(prayerStrip(), LinearLayout.LayoutParams(-1, dp(68)))
+        body.addView(prayerPanel, LinearLayout.LayoutParams(-1, dp(84)))
 
+        // BÖLMƏLƏR ayrıca ağ sahədədir.
         val sheet = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(12), dp(15), dp(12), dp(19))
-            background = GradientDrawable().apply {
-                setColor(0xfffffdfb.toInt())
-                cornerRadii = floatArrayOf(
-                    dp(28).toFloat(), dp(28).toFloat(),
-                    dp(28).toFloat(), dp(28).toFloat(),
-                    0f, 0f, 0f, 0f
-                )
-            }
-            elevation = dp(4).toFloat()
+            setPadding(dp(12), dp(18), dp(12), dp(20))
+            background = Color.WHITE
         }
-
-        val grab = View(this).apply {
-            background = GradientDrawable().apply {
-                setColor(0xffc7cbd4.toInt())
-                cornerRadius = dp(4).toFloat()
-            }
-        }
-        sheet.addView(
-            grab,
-            LinearLayout.LayoutParams(dp(50), dp(4)).apply {
-                gravity = Gravity.CENTER_HORIZONTAL
-                bottomMargin = dp(10)
-            }
-        )
 
         data class HomeItem(val title: String, val icon: Int, val color: Int, val target: String)
-
         val items = listOf(
             HomeItem("Quran", R.drawable.ic_quran, 0xff04b989.toInt(), "quran"),
             HomeItem("Məfatih", R.drawable.ic_dua, 0xffff764c.toInt(), "mafatih"),
@@ -940,17 +914,29 @@ root.addView(TextView(this).apply {
             val cell = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                setPadding(dp(2), dp(1), dp(2), dp(2))
+                setPadding(dp(2), dp(3), dp(2), dp(3))
+                setOnClickListener {
+                    when (item.target) {
+                        "news" -> showNews()
+                        "qa" -> startActivity(Intent(this@MainActivity, NativeQaActivity::class.java))
+                        "experts" -> startActivity(
+                            Intent(this@MainActivity, NativeQaActivity::class.java).putExtra("mode", "experts")
+                        )
+                        "settings" -> showSettings()
+                        else -> startActivity(
+                            Intent(this@MainActivity, NativeContentActivity::class.java).putExtra("section", item.target)
+                        )
+                    }
+                }
             }
+
             val iconBox = FrameLayout(this).apply {
                 background = GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
                     intArrayOf(item.color, blend(item.color, Color.WHITE, .10f))
                 ).apply {
-                    cornerRadius = dp(16).toFloat()
-                    setStroke(dp(1), 0x33ffffff)
+                    cornerRadius = dp(15).toFloat()
                 }
-                elevation = dp(2).toFloat()
             }
             iconBox.addView(
                 ImageView(this).apply {
@@ -958,33 +944,24 @@ root.addView(TextView(this).apply {
                     setColorFilter(Color.WHITE)
                     scaleType = ImageView.ScaleType.CENTER_INSIDE
                     setPadding(dp(12), dp(12), dp(12), dp(12))
-                    contentDescription = item.title
                 },
                 FrameLayout.LayoutParams(-1, -1)
             )
-            cell.addView(iconBox, LinearLayout.LayoutParams(dp(56), dp(56)))
+            cell.addView(iconBox, LinearLayout.LayoutParams(dp(54), dp(54)))
             cell.addView(
-                label(item.title, 9f, 0xff1c2740.toInt()).apply {
-                    setLines(2)
+                label(item.title, 8.8f, 0xff273247.toInt()).apply {
                     gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+                    setLines(2)
                     setPadding(0, dp(5), 0, 0)
                 },
                 LinearLayout.LayoutParams(-1, dp(34))
             )
-            cell.setOnClickListener {
-                when (item.target) {
-                    "news" -> showNews()
-                    "qa" -> startActivity(Intent(this, NativeQaActivity::class.java))
-                    "experts" -> startActivity(Intent(this, NativeQaActivity::class.java).putExtra("mode", "experts"))
-                    "settings" -> showSettings()
-                    else -> startActivity(Intent(this, NativeContentActivity::class.java).putExtra("section", item.target))
-                }
-            }
+
             grid.addView(
                 cell,
                 android.widget.GridLayout.LayoutParams().apply {
                     width = 0
-                    height = dp(101)
+                    height = dp(96)
                     columnSpec = android.widget.GridLayout.spec(index % 5, 1f)
                     rowSpec = android.widget.GridLayout.spec(index / 5)
                     setMargins(dp(1), dp(2), dp(1), dp(2))
@@ -993,13 +970,14 @@ root.addView(TextView(this).apply {
         }
 
         sheet.addView(grid, LinearLayout.LayoutParams(-1, -2))
-        body.addView(sheet, LinearLayout.LayoutParams(-1, -2).apply { topMargin = -dp(7) })
+        body.addView(sheet, LinearLayout.LayoutParams(-1, -2))
 
         scroll.addView(body)
         root.addView(scroll, FrameLayout.LayoutParams(-1, -1))
         root.addView(bottomWave(), FrameLayout.LayoutParams(-1, dp(87), Gravity.BOTTOM))
         return root
     }
+
     private fun blend(a:Int,b:Int,f:Float):Int = Color.rgb(
         (Color.red(a)*(1-f)+Color.red(b)*f).toInt(),
         (Color.green(a)*(1-f)+Color.green(b)*f).toInt(),
@@ -1008,15 +986,9 @@ root.addView(TextView(this).apply {
     private fun prayerStrip():View {
         val t = PrayerClock.times(this)
         val active = PrayerClock.activeKey(this)
-        val nowText = java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date())
-        val dawn = t["sunrise"] ?: "06:00"
-        val dusk = t["sunset"] ?: "19:00"
-        val night = nowText < dawn || nowText >= dusk
-
         val row = LinearLayout(this).apply {
-            gravity = Gravity.BOTTOM
+            gravity = Gravity.CENTER_VERTICAL
             orientation = LinearLayout.HORIZONTAL
-            setPadding(dp(1), dp(2), dp(1), dp(2))
         }
 
         for (i in PrayerClock.keys.indices) {
@@ -1025,45 +997,32 @@ root.addView(TextView(this).apply {
             val time = t[key] ?: "--:--"
             val selected = active == key && time != "--:--"
 
-            val normalTop = 0xc92a3033.toInt()
-            val normalBottom = 0xde151c20.toInt()
-            val selectedTop = if (night) 0xffb77b00.toInt() else 0xff086ee8.toInt()
-            val selectedBottom = if (night) 0xff805300.toInt() else 0xff064ca9.toInt()
-
-            val background = GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                intArrayOf(
-                    if (selected) selectedTop else normalTop,
-                    if (selected) selectedBottom else normalBottom
-                )
-            ).apply {
-                cornerRadius = dp(13).toFloat()
-                setStroke(
-                    dp(if (selected) 2 else 1),
-                    if (selected) {
-                        if (night) 0xffffd75a.toInt() else 0xff35c9ff.toInt()
-                    } else 0x55ffffff
-                )
-            }
-
             val card = LinearLayout(this).apply {
                 gravity = Gravity.CENTER
                 orientation = LinearLayout.VERTICAL
-                this.background = background
-                setPadding(0, dp(5), 0, dp(3))
-                elevation = if (selected) dp(5).toFloat() else dp(1).toFloat()
+                setPadding(0, dp(5), 0, dp(4))
+                background = GradientDrawable().apply {
+                    cornerRadius = dp(11).toFloat()
+                    setColor(if (selected) 0xff0d5b50.toInt() else 0xfffffcf6.toInt())
+                    setStroke(dp(1), if (selected) 0xff0d5b50.toInt() else 0xffd7c49a.toInt())
+                }
                 setOnClickListener { prayerSettings() }
             }
 
-            card.addView(label(name, 7.8f, Color.WHITE, selected).apply { setLines(2) }, LinearLayout.LayoutParams(-1, dp(28)))
-            card.addView(AliebaPrayerSymbolView(this, key), LinearLayout.LayoutParams(dp(16), dp(16)))
             card.addView(
-                label(time, 10.2f, if (selected && night) 0xffffedaa.toInt() else Color.WHITE, true),
-                LinearLayout.LayoutParams(-1, dp(18))
+                label(name, 7.2f, if (selected) Color.WHITE else 0xff6f6658.toInt(), selected).apply {
+                    setLines(2)
+                },
+                LinearLayout.LayoutParams(-1, dp(27))
             )
+            card.addView(
+                label(time, 10f, if (selected) Color.WHITE else 0xff183f37.toInt(), true),
+                LinearLayout.LayoutParams(-1, dp(20))
+            )
+
             row.addView(
                 card,
-                LinearLayout.LayoutParams(0, dp(75), 1f).apply {
+                LinearLayout.LayoutParams(0, dp(62), 1f).apply {
                     setMargins(dp(2), 0, dp(2), 0)
                 }
             )
