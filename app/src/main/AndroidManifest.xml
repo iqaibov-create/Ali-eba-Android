@@ -13,7 +13,6 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
 
     <application
-        android:name=".AliebaApp"
         android:theme="@style/Theme.Alieba"
         android:label="Alieba"
         android:icon="@drawable/alieba_gold_brand"
@@ -54,7 +53,7 @@
         <activity android:name=".NativeNewsActivity" android:exported="false"/>
         <activity android:name=".NativeQaActivity" android:exported="false"/>
         <activity android:name=".NativeExpertActivity" android:exported="false" android:windowSoftInputMode="adjustResize"/>
-        <activity android:name=".NativeAiActivity" android:exported="false"/>
+        <activity android:name=".NativeAiActivity" android:exported="false" android:theme="@style/Theme.Alieba.AiOverlay"/>
         <activity android:name=".HabibV222ProfileActivity" android:exported="false"/>
         <activity android:name=".NativeProfileActivity" android:exported="false"/>
         <activity android:name=".NativeSettingsActivity" android:exported="false"/>

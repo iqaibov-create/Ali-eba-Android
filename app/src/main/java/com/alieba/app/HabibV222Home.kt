@@ -317,6 +317,7 @@ object HabibV222Home {
         scroll.addView(body)
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         root.addView(bottomBar(activity), LinearLayout.LayoutParams(-1, dp(activity, 92)))
+        scroll.post { scroll.scrollTo(0, 0) }
         return root
     }
 

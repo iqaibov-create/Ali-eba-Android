@@ -2,6 +2,7 @@ package com.alieba.app
 
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -10,6 +11,8 @@ import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
 import android.view.Gravity
 import android.view.View
+import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
 import android.widget.*
 import org.json.JSONArray
 import org.json.JSONObject
@@ -18,52 +21,66 @@ import java.net.URL
 import java.util.Locale
 
 class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
-    private lateinit var messages: LinearLayout
-    private lateinit var scroll: ScrollView
+
+    private lateinit var answerText: TextView
+    private lateinit var voiceOrb: FrameLayout
+    private lateinit var keyboardButton: FrameLayout
+    private lateinit var inputRow: LinearLayout
     private lateinit var input: EditText
     private lateinit var send: TextView
-    private lateinit var mic: TextView
+
     private var busy = false
     private var speakNext = false
     private var tts: TextToSpeech? = null
+
     private val speechRequest = 778
+    private val micPermissionRequest = 779
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
-    private fun rounded(color: Int, radius: Int, stroke: Int? = null): GradientDrawable =
-        GradientDrawable().apply {
-            setColor(color)
-            cornerRadius = dp(radius).toFloat()
-            if (stroke != null) setStroke(dp(1), stroke)
-        }
+    private fun round(
+        color: Int,
+        radius: Int,
+        stroke: Int? = null,
+        strokeWidth: Int = 1
+    ) = GradientDrawable().apply {
+        setColor(color)
+        cornerRadius = dp(radius).toFloat()
+        if (stroke != null) setStroke(dp(strokeWidth), stroke)
+    }
 
-    private fun text(value: String, size: Float, color: Int, bold: Boolean = false) =
-        TextView(this).apply {
-            text = value
-            textSize = size
-            setTextColor(color)
-            includeFontPadding = false
-            if (bold) typeface = Typeface.DEFAULT_BOLD
-        }
+    private fun text(
+        value: String,
+        size: Float,
+        color: Int,
+        bold: Boolean = false
+    ) = TextView(this).apply {
+        text = value
+        textSize = size
+        setTextColor(color)
+        includeFontPadding = false
+        if (bold) typeface = Typeface.DEFAULT_BOLD
+    }
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        NativeUi.setBars(this)
-        window.statusBarColor = 0xff0b4339.toInt()
+
+        window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+        window.setDimAmount(0.42f)
+        window.statusBarColor = 0x66000000
+        window.navigationBarColor = 0xff020318.toInt()
+
         tts = TextToSpeech(this, this)
         setContentView(build())
-        addBot("Salam 👋 Mən Alieba AI-yam. Yalnız İslam dini ilə bağlı suallarda kömək edirəm. Danışa və ya yaza bilərsən.")
-
-        // V22.3.1: Habib kimi AI açılan kimi səsli sorğu hazır olsun.
-        window.decorView.postDelayed({
-            if (!isFinishing) maybeStartVoice()
-        }, 450)
     }
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
-            val az = tts?.setLanguage(Locale("az", "AZ"))
-            if (az == TextToSpeech.LANG_MISSING_DATA || az == TextToSpeech.LANG_NOT_SUPPORTED) {
+            val result = tts?.setLanguage(Locale("az", "AZ"))
+            if (
+                result == TextToSpeech.LANG_MISSING_DATA ||
+                result == TextToSpeech.LANG_NOT_SUPPORTED
+            ) {
                 tts?.setLanguage(Locale("tr", "TR"))
             }
         }
@@ -77,143 +94,234 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
     }
 
     private fun build(): View {
-        val root = LinearLayout(this).apply {
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            setOnClickListener { finish() }
+        }
+
+        val sheet = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(0xfffbfaf4.toInt())
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dp(22), dp(22), dp(22), dp(22))
+            background = GradientDrawable().apply {
+                setColor(0xff020318.toInt())
+                cornerRadius = dp(38).toFloat()
+                setStroke(dp(2), 0xff4854ff.toInt())
+            }
+            elevation = dp(18).toFloat()
+            setOnClickListener { }
         }
 
-        val head = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(14), dp(12), dp(14), dp(12))
-            background = GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                intArrayOf(0xff11695a.toInt(), 0xff0b4339.toInt())
-            )
-        }
-
-        head.addView(
-            text("‹", 36f, Color.WHITE).apply {
-                gravity = Gravity.CENTER
-                setOnClickListener { finish() }
-            },
-            LinearLayout.LayoutParams(dp(44), dp(44))
-        )
-
-        val title = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(7), 0, 0, 0)
-        }
-        title.addView(text("Alieba AI", 18f, Color.WHITE, true))
-        title.addView(
-            text("Dini köməkçi • yaz və ya danış", 10.5f, 0xffd8e9e4.toInt()).apply {
-                setPadding(0, dp(3), 0, 0)
+        val title = text("✦  Alieba Süni Zəka Yardımı", 12.5f, 0xff807eff.toInt())
+        title.gravity = Gravity.CENTER
+        sheet.addView(
+            title,
+            LinearLayout.LayoutParams(-1, -2).apply {
+                bottomMargin = dp(18)
             }
         )
-        head.addView(title, LinearLayout.LayoutParams(0, -2, 1f))
-        root.addView(head)
 
-        scroll = ScrollView(this).apply {
-            isFillViewport = true
-            overScrollMode = View.OVER_SCROLL_NEVER
-            setBackgroundColor(0xfffbfaf4.toInt())
+        voiceOrb = FrameLayout(this).apply {
+            background = GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                intArrayOf(0xff754eff.toInt(), 0xffff5a86.toInt())
+            ).apply {
+                shape = GradientDrawable.OVAL
+                setStroke(dp(2), 0xffb370ff.toInt())
+            }
+            elevation = dp(12).toFloat()
+            setOnClickListener { maybeStartVoice() }
         }
 
-        messages = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(13), dp(14), dp(13), dp(18))
-        }
-        scroll.addView(messages)
-        root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        voiceOrb.addView(
+            ImageView(this).apply {
+                setImageResource(R.drawable.ic_alieba_ai)
+                setColorFilter(Color.WHITE)
+                scaleType = ImageView.ScaleType.CENTER_INSIDE
+                setPadding(dp(24), dp(24), dp(24), dp(24))
+            },
+            FrameLayout.LayoutParams(-1, -1)
+        )
 
-        val quick = HorizontalScrollView(this).apply {
+        sheet.addView(
+            voiceOrb,
+            LinearLayout.LayoutParams(dp(94), dp(94)).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                bottomMargin = dp(28)
+            }
+        )
+
+        answerText = text(
+            "Necə kömək edə biləcəyimi söyləyin",
+            16f,
+            0xffc7c8d8.toInt(),
+            true
+        ).apply {
+            gravity = Gravity.CENTER
+            setLineSpacing(dp(3).toFloat(), 1f)
+            setOnClickListener {
+                val value = text?.toString().orEmpty()
+                if (value.isNotBlank()) speak(value)
+            }
+        }
+
+        sheet.addView(
+            answerText,
+            LinearLayout.LayoutParams(-1, 0, 1f).apply {
+                leftMargin = dp(8)
+                rightMargin = dp(8)
+                bottomMargin = dp(18)
+            }
+        )
+
+        val quickScroll = HorizontalScrollView(this).apply {
             isHorizontalScrollBarEnabled = false
-            setBackgroundColor(0xfffbfaf4.toInt())
+            setBackgroundColor(Color.TRANSPARENT)
         }
 
-        val qr = LinearLayout(this).apply {
+        val quick = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(dp(12), dp(3), dp(12), dp(8))
+            gravity = Gravity.CENTER_VERTICAL
         }
 
         listOf(
-            "Namaz" to "Namaz haqqında məlumat ver",
-            "Quran" to "Qurani-Kərim haqqında məlumat ver",
-            "Dua Kumeyl" to "Dua Kumeyl haqqında məlumat ver",
-            "Dini sual" to "Dini sual vermək istəyirəm"
+            "Mənə Dua Kumeyli anlat" to "Dua Kumeyl haqqında qısa məlumat ver",
+            "Vaqiə surəsi" to "Vaqiə surəsi haqqında məlumat ver",
+            "Namaz" to "Namaz haqqında məlumat ver"
         ).forEach { item ->
-            qr.addView(
-                text(item.first, 11f, 0xff0b4339.toInt(), true).apply {
+            quick.addView(
+                text(item.first, 11.5f, Color.WHITE).apply {
                     gravity = Gravity.CENTER
-                    setPadding(dp(13), 0, dp(13), 0)
-                    background = rounded(Color.WHITE, 18, 0xffdbe7e2.toInt())
-                    setOnClickListener { ask(item.second) }
+                    setPadding(dp(14), 0, dp(14), 0)
+                    background = round(0xff090a20.toInt(), 20, 0xff44465e.toInt())
+                    setOnClickListener {
+                        speakNext = true
+                        ask(item.second)
+                    }
                 },
-                LinearLayout.LayoutParams(-2, dp(37)).apply {
-                    rightMargin = dp(7)
+                LinearLayout.LayoutParams(-2, dp(42)).apply {
+                    rightMargin = dp(8)
                 }
             )
         }
 
-        quick.addView(qr)
-        root.addView(quick, LinearLayout.LayoutParams(-1, dp(48)))
-
-        val compose = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.BOTTOM
-            setPadding(dp(10), dp(9), dp(10), dp(10))
-            setBackgroundColor(Color.WHITE)
-        }
-
-        mic = text("🎙", 20f, 0xff17362f.toInt(), true).apply {
-            gravity = Gravity.CENTER
-            background = rounded(0xffeef7f4.toInt(), 15, 0xffdbe7e2.toInt())
-            setOnClickListener { maybeStartVoice() }
-        }
-        compose.addView(
-            mic,
-            LinearLayout.LayoutParams(dp(48), dp(48)).apply {
-                rightMargin = dp(8)
+        quickScroll.addView(quick)
+        sheet.addView(
+            quickScroll,
+            LinearLayout.LayoutParams(-1, dp(50)).apply {
+                bottomMargin = dp(16)
             }
         )
 
+        inputRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            visibility = View.GONE
+            setPadding(0, 0, 0, dp(12))
+        }
+
         input = EditText(this).apply {
             hint = "Dini sualınızı yazın..."
-            setHintTextColor(0xff82918c.toInt())
-            setTextColor(0xff18312b.toInt())
+            setHintTextColor(0xff77798d.toInt())
+            setTextColor(Color.WHITE)
             textSize = 14f
-            maxLines = 4
-            minLines = 1
-            setPadding(dp(13), dp(10), dp(13), dp(10))
-            background = rounded(0xfffcfdfc.toInt(), 16, 0xffdbe7e2.toInt())
+            maxLines = 3
+            setPadding(dp(14), dp(9), dp(14), dp(9))
+            background = round(0xff0d0e25.toInt(), 17, 0xff40425d.toInt())
         }
-        compose.addView(input, LinearLayout.LayoutParams(0, -2, 1f))
 
-        send = text("➤", 22f, 0xff17362f.toInt(), true).apply {
+        inputRow.addView(input, LinearLayout.LayoutParams(0, -2, 1f))
+
+        send = text("➤", 21f, Color.WHITE, true).apply {
             gravity = Gravity.CENTER
-            background = rounded(0xffd8b45a.toInt(), 15)
-            setOnClickListener { ask(input.text.toString()) }
+            background = round(0xff5e5ff4.toInt(), 16)
+            setOnClickListener {
+                val q = input.text.toString().trim()
+                if (q.isNotEmpty()) {
+                    speakNext = false
+                    ask(q)
+                    input.setText("")
+                }
+            }
         }
-        compose.addView(
+
+        inputRow.addView(
             send,
             LinearLayout.LayoutParams(dp(48), dp(48)).apply {
                 leftMargin = dp(8)
             }
         )
 
-        root.addView(compose)
+        sheet.addView(inputRow, LinearLayout.LayoutParams(-1, -2))
+
+        val bottom = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val language = FrameLayout(this).apply {
+            background = round(0xff17182d.toInt(), 16)
+        }
+        language.addView(
+            text("◎", 23f, Color.WHITE, true).apply { gravity = Gravity.CENTER },
+            FrameLayout.LayoutParams(-1, -1)
+        )
+        bottom.addView(language, LinearLayout.LayoutParams(dp(50), dp(50)))
+
+        bottom.addView(
+            text("Ortadakı işarəyə basıb danış", 11.5f, Color.WHITE, true).apply {
+                gravity = Gravity.CENTER
+            },
+            LinearLayout.LayoutParams(0, dp(50), 1f)
+        )
+
+        keyboardButton = FrameLayout(this).apply {
+            background = round(0xff17182d.toInt(), 16)
+            setOnClickListener { toggleKeyboard() }
+        }
+        keyboardButton.addView(
+            text("⌨", 22f, Color.WHITE, true).apply { gravity = Gravity.CENTER },
+            FrameLayout.LayoutParams(-1, -1)
+        )
+        bottom.addView(keyboardButton, LinearLayout.LayoutParams(dp(50), dp(50)))
+
+        sheet.addView(bottom, LinearLayout.LayoutParams(-1, dp(52)))
+
+        val screenH = resources.displayMetrics.heightPixels
+        val desired = (screenH * 0.58f).toInt().coerceIn(dp(420), dp(610))
+
+        root.addView(
+            sheet,
+            FrameLayout.LayoutParams(-1, desired, Gravity.BOTTOM)
+        )
+
         return root
+    }
+
+    private fun toggleKeyboard() {
+        if (inputRow.visibility == View.VISIBLE) {
+            inputRow.visibility = View.GONE
+            (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager)
+                .hideSoftInputFromWindow(input.windowToken, 0)
+        } else {
+            inputRow.visibility = View.VISIBLE
+            input.requestFocus()
+            input.postDelayed({
+                (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager)
+                    .showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
+            }, 120)
+        }
     }
 
     private fun maybeStartVoice() {
         if (
             android.os.Build.VERSION.SDK_INT >= 23 &&
             checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) !=
-            android.content.pm.PackageManager.PERMISSION_GRANTED
+            PackageManager.PERMISSION_GRANTED
         ) {
             requestPermissions(
                 arrayOf(android.Manifest.permission.RECORD_AUDIO),
-                779
+                micPermissionRequest
             )
         } else {
             startVoice()
@@ -227,16 +335,15 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
-        if (requestCode == 779) {
+        if (requestCode == micPermissionRequest) {
             val granted =
                 grantResults.isNotEmpty() &&
-                grantResults[0] ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
+                grantResults[0] == PackageManager.PERMISSION_GRANTED
 
             if (granted) {
                 window.decorView.postDelayed({
                     if (!isFinishing) startVoice()
-                }, 250)
+                }, 200)
             } else {
                 Toast.makeText(
                     this,
@@ -261,75 +368,30 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
         } catch (_: Exception) {
             Toast.makeText(
                 this,
-                "Telefonda səsli tanıma xidməti tapılmadı",
+                "Telefonda səsli tanıma xidməti tapılmadı.",
                 Toast.LENGTH_LONG
             ).show()
         }
     }
 
     @Deprecated("Speech recognition compatibility")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    override fun onActivityResult(
+        requestCode: Int,
+        resultCode: Int,
+        data: Intent?
+    ) {
         super.onActivityResult(requestCode, resultCode, data)
 
         if (requestCode == speechRequest && resultCode == RESULT_OK) {
-            val spoken = data
-                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                ?.firstOrNull()
-                .orEmpty()
+            val spoken =
+                data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                    ?.firstOrNull()
+                    .orEmpty()
 
             if (spoken.isNotBlank()) {
-                input.setText(spoken)
                 speakNext = true
                 ask(spoken)
             }
-        }
-    }
-
-    private fun addBot(value: String) = addBubble(value, false)
-    private fun addUser(value: String) = addBubble(value, true)
-
-    private fun addBubble(value: String, user: Boolean) {
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = if (user) Gravity.END else Gravity.START
-        }
-
-        val bubble = text(
-            value,
-            13f,
-            if (user) Color.WHITE else 0xff18312b.toInt()
-        ).apply {
-            setPadding(dp(12), dp(10), dp(12), dp(10))
-            background = rounded(
-                if (user) 0xff0b4339.toInt() else Color.WHITE,
-                16,
-                if (user) null else 0xffdbe7e2.toInt()
-            )
-
-            if (!user) {
-                setOnLongClickListener {
-                    speak(value)
-                    true
-                }
-            }
-        }
-
-        row.addView(
-            bubble,
-            LinearLayout.LayoutParams(-2, -2).apply {
-                width = (resources.displayMetrics.widthPixels * 0.82f).toInt()
-            }
-        )
-
-        messages.addView(
-            row,
-            LinearLayout.LayoutParams(-1, -2).apply {
-                bottomMargin = dp(9)
-            }
-        )
-
-        scroll.post {
-            scroll.fullScroll(View.FOCUS_DOWN)
         }
     }
 
@@ -347,47 +409,33 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
         val question = raw.trim()
         if (question.isEmpty() || busy) return
 
-        input.setText("")
-        addUser(question)
         busy = true
-        send.alpha = 0.45f
-        mic.alpha = 0.45f
-
-        val waiting = text(
-            "Cavab hazırlanır…",
-            11f,
-            0xff73867f.toInt()
-        ).apply {
-            setPadding(dp(4), dp(2), 0, dp(7))
-        }
-
-        messages.addView(waiting)
-        scroll.post {
-            scroll.fullScroll(View.FOCUS_DOWN)
-        }
+        answerText.text = "Cavab hazırlanır…"
+        answerText.setTextColor(0xff85879b.toInt())
+        voiceOrb.alpha = 0.60f
+        send.alpha = 0.55f
 
         Thread {
             var answer = "Hazırda AI xidmətinə qoşulmaq alınmadı."
 
             try {
-                val conn = (
+                val conn =
                     URL("https://alieba.ge/api/ai-chat.php")
                         .openConnection() as HttpURLConnection
-                ).apply {
-                    requestMethod = "POST"
-                    connectTimeout = 10000
-                    readTimeout = 35000
-                    doOutput = true
-                    setRequestProperty(
-                        "Content-Type",
-                        "application/json; charset=utf-8"
-                    )
-                    setRequestProperty("Accept", "application/json")
-                    setRequestProperty(
-                        "X-Requested-With",
-                        "XMLHttpRequest"
-                    )
-                }
+
+                conn.requestMethod = "POST"
+                conn.connectTimeout = 10000
+                conn.readTimeout = 35000
+                conn.doOutput = true
+                conn.setRequestProperty(
+                    "Content-Type",
+                    "application/json; charset=utf-8"
+                )
+                conn.setRequestProperty("Accept", "application/json")
+                conn.setRequestProperty(
+                    "X-Requested-With",
+                    "XMLHttpRequest"
+                )
 
                 val payload = JSONObject()
                     .put("message", question)
@@ -405,16 +453,13 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
                     else
                         conn.errorStream
 
-                val body = stream
-                    ?.bufferedReader(Charsets.UTF_8)
-                    ?.use {
-                        it.readText()
-                    }
-                    .orEmpty()
+                val body =
+                    stream?.bufferedReader(Charsets.UTF_8)
+                        ?.use { it.readText() }
+                        .orEmpty()
 
                 if (body.isNotBlank()) {
                     val json = JSONObject(body)
-
                     answer =
                         if (json.optBoolean("ok"))
                             json.optString("answer", answer)
@@ -427,8 +472,10 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
             }
 
             runOnUiThread {
-                messages.removeView(waiting)
-                addBot(answer)
+                answerText.text = answer
+                answerText.setTextColor(0xffd9dae8.toInt())
+                voiceOrb.alpha = 1f
+                send.alpha = 1f
 
                 if (speakNext) {
                     speakNext = false
@@ -436,8 +483,6 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
                 }
 
                 busy = false
-                send.alpha = 1f
-                mic.alpha = 1f
             }
         }.start()
     }

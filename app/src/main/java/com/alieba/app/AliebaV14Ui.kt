@@ -422,15 +422,15 @@ object AliebaBottomNav {
         val center=FrameLayout(c).apply {
             background=GradientDrawable().apply {
                 shape=GradientDrawable.OVAL
-                setColor(0xff245ee9.toInt())
-                setStroke(dp(c,5),0xffeef3ff.toInt())
+                setColor(0xffff7d58.toInt())
+                setStroke(dp(c,5),Color.WHITE)
             }
             elevation=dp(c,7).toFloat()
             setOnClickListener{open("ai")}
         }
         center.addView(
             ImageView(c).apply {
-                setImageResource(R.drawable.ic_notification_mosque)
+                setImageResource(R.drawable.ic_alieba_ai)
                 setColorFilter(Color.WHITE)
                 scaleType=ImageView.ScaleType.CENTER_INSIDE
                 setPadding(dp(c,17),dp(c,17),dp(c,17),dp(c,17))
