@@ -66,6 +66,7 @@ object HabibV222Home {
 
         val scroll = ScrollView(activity).apply {
             isFillViewport = true
+            isSaveEnabled = false
             clipToPadding = false
             overScrollMode = View.OVER_SCROLL_NEVER
             setBackgroundColor(Color.WHITE)
@@ -73,6 +74,7 @@ object HabibV222Home {
 
         val body = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
+            isSaveEnabled = false
             setBackgroundColor(Color.WHITE)
             clipChildren = false
             clipToPadding = false
@@ -83,9 +85,15 @@ object HabibV222Home {
             clipToPadding = false
         }
 
-        // Alieba-nın mövcud gündüz/gecə məscid şəkilləri saxlanılır.
+        // V22.5: ana səhifədə məscid şəkli birbaşa ImageView ilə çəkilir.
+        // Bu, bəzi telefonlarda custom View-in boş/ağ qalması problemini aradan qaldırır.
         hero.addView(
-            MosqueSceneView(activity, night),
+            ImageView(activity).apply {
+                setImageResource(if (night) R.drawable.mosque_night else R.drawable.mosque_day)
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                setBackgroundColor(if (night) 0xff14345e.toInt() else 0xff9bcfee.toInt())
+                contentDescription = "Alieba məscid"
+            },
             FrameLayout.LayoutParams(-1, -1)
         )
 
@@ -209,10 +217,10 @@ object HabibV222Home {
             FrameLayout.LayoutParams(-1, dp(activity, 70), Gravity.BOTTOM).apply {
                 leftMargin = dp(activity, 11)
                 rightMargin = dp(activity, 11)
-                bottomMargin = dp(activity, 16)
+                bottomMargin = dp(activity, 20)
             }
         )
-        body.addView(hero, LinearLayout.LayoutParams(-1, dp(activity, 420)))
+        body.addView(hero, LinearLayout.LayoutParams(-1, dp(activity, 374)))
 
         // Panel hero-nun üstünə azca gəlir: yuxarı yumru künclərin arxasında məscid şəkli görünür.
         val sheet = LinearLayout(activity).apply {
@@ -309,15 +317,14 @@ object HabibV222Home {
         body.addView(
             sheet,
             LinearLayout.LayoutParams(-1, -2).apply {
-                topMargin = -dp(activity, 8)
+                topMargin = -dp(activity, 14)
             }
         )
-        body.addView(View(activity).apply { setBackgroundColor(Color.WHITE) }, LinearLayout.LayoutParams(-1, dp(activity, 4)))
+        body.addView(View(activity).apply { setBackgroundColor(Color.WHITE) }, LinearLayout.LayoutParams(-1, dp(activity, 12)))
 
         scroll.addView(body)
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         root.addView(bottomBar(activity), LinearLayout.LayoutParams(-1, dp(activity, 92)))
-        scroll.post { scroll.scrollTo(0, 0) }
         return root
     }
 
