@@ -360,10 +360,9 @@ object AliebaBottomNav {
                         }
                     }.show()
                 }
-                "ai"->AlertDialog.Builder(activity)
-                    .setTitle("Alieba köməkçi")
-                    .setMessage("Alieba köməkçisi hazırlanır.")
-                    .setPositiveButton("Bağla",null).show()
+                "ai"->activity.startActivity(
+                    Intent(c, NativeAiActivity::class.java)
+                )
             }
         }
 

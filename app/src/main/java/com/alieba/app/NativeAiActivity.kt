@@ -52,7 +52,12 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
         window.statusBarColor = 0xff0b4339.toInt()
         tts = TextToSpeech(this, this)
         setContentView(build())
-        addBot("Salam 👋 Mən Alieba AI-yam. Yalnız İslam dini ilə bağlı suallarda kömək edirəm. Mikrofona basıb danışa da bilərsən.")
+        addBot("Salam 👋 Mən Alieba AI-yam. Yalnız İslam dini ilə bağlı suallarda kömək edirəm. Danışa və ya yaza bilərsən.")
+
+        // V22.3.1: Habib kimi AI açılan kimi səsli sorğu hazır olsun.
+        window.decorView.postDelayed({
+            if (!isFinishing) maybeStartVoice()
+        }, 450)
     }
 
     override fun onInit(status: Int) {
@@ -163,7 +168,7 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
         mic = text("🎙", 20f, 0xff17362f.toInt(), true).apply {
             gravity = Gravity.CENTER
             background = rounded(0xffeef7f4.toInt(), 15, 0xffdbe7e2.toInt())
-            setOnClickListener { startVoice() }
+            setOnClickListener { maybeStartVoice() }
         }
         compose.addView(
             mic,
@@ -198,6 +203,48 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
 
         root.addView(compose)
         return root
+    }
+
+    private fun maybeStartVoice() {
+        if (
+            android.os.Build.VERSION.SDK_INT >= 23 &&
+            checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(
+                arrayOf(android.Manifest.permission.RECORD_AUDIO),
+                779
+            )
+        } else {
+            startVoice()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == 779) {
+            val granted =
+                grantResults.isNotEmpty() &&
+                grantResults[0] ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+
+            if (granted) {
+                window.decorView.postDelayed({
+                    if (!isFinishing) startVoice()
+                }, 250)
+            } else {
+                Toast.makeText(
+                    this,
+                    "Səsli Alieba AI üçün mikrofon icazəsi lazımdır.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
     }
 
     private fun startVoice() {

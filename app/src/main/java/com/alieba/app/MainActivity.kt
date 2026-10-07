@@ -71,6 +71,15 @@ class MainActivity : Activity() {
         // Keep both the original prayer refresh and the new APK installer resumption.
         if (getSharedPreferences("alieba_setup", MODE_PRIVATE).getBoolean("completed", false)) {
             PrayerClock.scheduleToday(this)
+
+            // V22.3.1: AI və digər səhifələrdən geri qayıdanda index boş qalmasın.
+            if (currentPage == "home") {
+                window.decorView.post {
+                    if (!isFinishing && currentPage == "home") {
+                        showHome()
+                    }
+                }
+            }
         }
         AliebaUpdateChecker.resumePending(this)
         MobileApi.heartbeat(this)
