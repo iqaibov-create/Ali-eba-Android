@@ -417,7 +417,7 @@ class MainActivity : Activity() {
         this.text=text; textSize=size;setTextColor(color); gravity=Gravity.CENTER
         if(bold) typeface=Typeface.DEFAULT_BOLD
     }
-    private fun home(): View = HabibV221Home.build(this)
+    private fun home(): View = HabibV222Home.build(this)
 
     private fun blend(a:Int,b:Int,f:Float):Int = Color.rgb(
         (Color.red(a)*(1-f)+Color.red(b)*f).toInt(),
