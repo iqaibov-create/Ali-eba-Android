@@ -12,8 +12,8 @@ android {
         applicationId = "com.alieba.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 39
-        versionName = "21.9"
+        versionCode = 40
+        versionName = "22.0"
     }
 
     compileOptions {
@@ -65,6 +65,5 @@ dependencies {
     implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
-    // Native image loading + memory/disk cache for news/expert photos.
     implementation("io.coil-kt:coil:2.7.0")
 }

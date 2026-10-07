@@ -255,167 +255,38 @@ class MainActivity : Activity() {
 
     private fun firstSetup(): View {
         currentPage = "setup_language"
-        getSharedPreferences("alieba_setup", MODE_PRIVATE).edit().putString("setup_stage", "language").apply()
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(20), dp(18), dp(20), dp(24))
-            background=AliebaPatternDrawable(resources.displayMetrics.density)
+        getSharedPreferences("alieba_setup", MODE_PRIVATE)
+            .edit().putString("setup_stage", "language").apply()
+
+        val pref = getSharedPreferences("alieba_setup", MODE_PRIVATE)
+
+        return HabibV220Setup.language(
+            this,
+            pref.getString("language", "az")
+        ) { code ->
+            pref.edit().putString("language", code).apply()
+            setContentView(locationSetup())
         }
-
-        root.addView(LinearLayout(this).apply {
-            gravity=Gravity.CENTER_VERTICAL
-            orientation=LinearLayout.VERTICAL
-            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(0xff0d473e.toInt(),0xff247668.toInt())).apply {cornerRadius=dp(22).toFloat()}
-            setPadding(dp(18),dp(16),dp(18),dp(16))
-            addView(TextView(this@MainActivity).apply {
-                text="☪  Alieba"
-                textSize=25f;typeface=Typeface.DEFAULT_BOLD;setTextColor(0xfff4d995.toInt())
-            })
-            addView(TextView(this@MainActivity).apply {
-                text="Qəlbinə yaxın bir dünya"
-                textSize=13f;setTextColor(Color.WHITE);setPadding(0,dp(6),0,0)
-            })
-        },LinearLayout.LayoutParams(-1,dp(100)).apply {bottomMargin=dp(18)})
-root.addView(TextView(this).apply {
-            text = "1 / 3"
-            textSize = 13f
-            setTextColor(0xff8d817a.toInt())
-            gravity = Gravity.CENTER
-            setPadding(0, dp(10), 0, dp(30))
-        })
-
-        root.addView(TextView(this).apply {
-            text = "Dilinizi seçin"
-            textSize = 23f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(ink)
-            gravity = Gravity.CENTER
-        })
-
-        root.addView(TextView(this).apply {
-            text = "Tətbiqin istifadə dilini seçin"
-            textSize = 14f
-            setTextColor(0xff756a64.toInt())
-            gravity = Gravity.CENTER
-            setPadding(0, dp(8), 0, dp(25))
-        })
-
-        val languages = listOf(
-            "🇦🇿  Azərbaycan" to "az",
-            "🇹🇷  Türkçe" to "tr",
-            "🇷🇺  Русский" to "ru",
-            "🇬🇪  ქართული" to "ka"
-        )
-
-        languages.forEach { (label, code) ->
-            val button = TextView(this).apply {
-                text = label
-                textSize = 17f
-                gravity = Gravity.CENTER_VERTICAL
-                setTextColor(ink)
-                setPadding(dp(20), 0, dp(20), 0)
-
-                background = GradientDrawable().apply {
-                    setColor(Color.WHITE)
-                    cornerRadius = dp(16).toFloat()
-                    setStroke(dp(1), 0xffeadfd8.toInt())
-                }
-
-                setOnClickListener {
-                    getSharedPreferences(
-                        "alieba_setup",
-                        MODE_PRIVATE
-                    ).edit()
-                        .putString("language", code)
-                        .apply()
-
-                    setContentView(locationSetup())
-                }
-            }
-
-            root.addView(
-                button,
-                LinearLayout.LayoutParams(
-                    -1,
-                    dp(62)
-                ).apply {
-                    bottomMargin = dp(12)
-                }
-            )
-        }
-
-        return root
     }
 
     private fun locationSetup(): View {
         currentPage = "setup_location"
-        getSharedPreferences("alieba_setup", MODE_PRIVATE).edit().putString("setup_stage", "location").apply()
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(20), dp(18), dp(20), dp(24))
-            background=AliebaPatternDrawable(resources.displayMetrics.density)
-        }
+        getSharedPreferences("alieba_setup", MODE_PRIVATE)
+            .edit().putString("setup_stage", "location").apply()
 
-        root.addView(LinearLayout(this).apply {
-            gravity=Gravity.CENTER_VERTICAL
-            orientation=LinearLayout.VERTICAL
-            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(0xff0d473e.toInt(),0xff247668.toInt())).apply {cornerRadius=dp(22).toFloat()}
-            setPadding(dp(18),dp(16),dp(18),dp(16))
-            addView(TextView(this@MainActivity).apply {
-                text="☪  Alieba"
-                textSize=25f;typeface=Typeface.DEFAULT_BOLD;setTextColor(0xfff4d995.toInt())
-            })
-            addView(TextView(this@MainActivity).apply {
-                text="Namaz vaxtları olduğun məkana uyğun"
-                textSize=13f;setTextColor(Color.WHITE);setPadding(0,dp(6),0,0)
-            })
-        },LinearLayout.LayoutParams(-1,dp(100)).apply {bottomMargin=dp(18)})
-root.addView(TextView(this).apply {
-            text = "2 / 3"
-            textSize = 13f
-            setTextColor(0xff8d817a.toInt())
-            gravity = Gravity.CENTER
-            setPadding(0, dp(10), 0, dp(30))
-        })
+        val pref = getSharedPreferences("alieba_setup", MODE_PRIVATE)
+        val ready =
+            pref.getString("latitude", null)?.toDoubleOrNull() != null &&
+            pref.getString("longitude", null)?.toDoubleOrNull() != null
 
-        root.addView(TextView(this).apply {
-            text = "Məkanınızı seçin"
-            textSize = 23f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(ink)
-            gravity = Gravity.CENTER
-        })
-
-        root.addView(TextView(this).apply {
-            text = "Namaz vaxtlarını düzgün hesablamaq üçün məkan lazımdır"
-            textSize = 14f
-            setTextColor(0xff756a64.toInt())
-            gravity = Gravity.CENTER
-            setPadding(0, dp(8), 0, dp(28))
-        })
-
-        val auto = TextView(this).apply {
-            text = "◎   Avtomatik müəyyən et"
-            textSize = 17f
-            gravity = Gravity.CENTER_VERTICAL
-            setTextColor(Color.WHITE)
-            setPadding(dp(20), 0, dp(20), 0)
-
-            background = GradientDrawable().apply {
-                setColor(brown)
-                cornerRadius = dp(16).toFloat()
-            }
-
-            setOnClickListener {
-                // Do not save an unconfirmed location or advance on this click.
-                if (Build.VERSION.SDK_INT >= 23 &&
-                    checkSelfPermission(
-                        android.Manifest.permission.ACCESS_FINE_LOCATION
-                    ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        return HabibV220Setup.location(
+            this,
+            ready = ready,
+            onAuto = {
+                if (
+                    Build.VERSION.SDK_INT >= 23 &&
+                    checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) !=
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
                 ) {
                     requestPermissions(
                         arrayOf(
@@ -427,94 +298,14 @@ root.addView(TextView(this).apply {
                 } else {
                     detectAutomaticLocation()
                 }
-            }
-        }
-
-        root.addView(
-            auto,
-            LinearLayout.LayoutParams(-1, dp(62)).apply {
-                topMargin = dp(8)
-                bottomMargin = dp(16)
+            },
+            onManual = { city ->
+                saveManualCityLocation(city)
+            },
+            onNext = {
+                setContentView(notificationSetup())
             }
         )
-
-        val locationPrefs = getSharedPreferences("alieba_setup", MODE_PRIVATE)
-        val locationReady = locationPrefs.getString("latitude", null)?.toDoubleOrNull() != null &&
-            locationPrefs.getString("longitude", null)?.toDoubleOrNull() != null
-        root.addView(TextView(this).apply {
-            text = if (locationReady) "✓ Məkan seçildi. İrəli düyməsinə basın." else "Məkanı avtomatik və ya şəhər adı ilə seçin."
-            textSize = 14f
-            gravity = Gravity.CENTER
-            setTextColor(if (locationReady) green else ink)
-            setPadding(0, 0, 0, dp(14))
-        })
-
-        val city = EditText(this).apply {
-            hint = "Şəhər — məsələn: Marneuli"
-            textSize = 16f
-            setSingleLine(true)
-            setPadding(dp(18), 0, dp(18), 0)
-
-            background = GradientDrawable().apply {
-                setColor(Color.WHITE)
-                cornerRadius = dp(16).toFloat()
-                setStroke(dp(1), 0xffeadfd8.toInt())
-            }
-        }
-
-        root.addView(
-            city,
-            LinearLayout.LayoutParams(-1, dp(60))
-        )
-
-        val manual = TextView(this).apply {
-            text = "Şəhəri yadda saxla və davam et"
-            textSize = 16f
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-            setTextColor(brown)
-
-            setOnClickListener {
-                val value = city.text.toString().trim()
-
-                if (value.isEmpty()) {
-                    city.error = "Şəhəri yazın"
-                    return@setOnClickListener
-                }
-
-                saveManualCityLocation(value)
-            }
-        }
-
-        root.addView(
-            manual,
-            LinearLayout.LayoutParams(-1, dp(58)).apply {
-                topMargin = dp(10)
-            }
-        )
-
-        val next = TextView(this).apply {
-            text = "İrəli — Bildiriş ayarları"
-            textSize = 17f
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-            setTextColor(Color.WHITE)
-            background = GradientDrawable().apply {
-                setColor(if (locationReady) green else 0xff9aaba5.toInt())
-                cornerRadius = dp(16).toFloat()
-            }
-            setOnClickListener {
-                val pref = getSharedPreferences("alieba_setup", MODE_PRIVATE)
-                if (pref.getString("latitude", null)?.toDoubleOrNull() == null ||
-                    pref.getString("longitude", null)?.toDoubleOrNull() == null) {
-                    Toast.makeText(this@MainActivity, "Əvvəl məkanınızı seçin.", Toast.LENGTH_SHORT).show()
-                } else {
-                    setContentView(notificationSetup())
-                }
-            }
-        }
-        root.addView(next, LinearLayout.LayoutParams(-1, dp(62)).apply { topMargin = dp(14) })
-        return root
     }
 
     private fun saveManualCityLocation(city: String) {
@@ -546,134 +337,48 @@ root.addView(TextView(this).apply {
 
     private fun notificationSetup(): View {
         currentPage = "setup_notifications"
-        getSharedPreferences("alieba_setup", MODE_PRIVATE).edit().putString("setup_stage", "notifications").apply()
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(20), dp(18), dp(20), dp(24))
-            background=AliebaPatternDrawable(resources.displayMetrics.density)
-        }
+        getSharedPreferences("alieba_setup", MODE_PRIVATE)
+            .edit().putString("setup_stage", "notifications").apply()
 
-        root.addView(LinearLayout(this).apply {
-            gravity=Gravity.CENTER_VERTICAL
-            orientation=LinearLayout.VERTICAL
-            background=GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(0xff0d473e.toInt(),0xff247668.toInt())).apply {cornerRadius=dp(22).toFloat()}
-            setPadding(dp(18),dp(16),dp(18),dp(16))
-            addView(TextView(this@MainActivity).apply {
-                text="☪  Alieba"
-                textSize=25f;typeface=Typeface.DEFAULT_BOLD;setTextColor(0xfff4d995.toInt())
-            })
-            addView(TextView(this@MainActivity).apply {
-                text="Azan səsləri və bildirişlər sənin seçimində"
-                textSize=13f;setTextColor(Color.WHITE);setPadding(0,dp(6),0,0)
-            })
-        },LinearLayout.LayoutParams(-1,dp(100)).apply {bottomMargin=dp(18)})
-root.addView(TextView(this).apply {
-            text = "3 / 3"
-            textSize = 13f
-            setTextColor(0xff8d817a.toInt())
-            gravity = Gravity.CENTER
-            setPadding(0, dp(10), 0, dp(30))
-        })
+        val granted =
+            Build.VERSION.SDK_INT < 33 ||
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
 
-        root.addView(TextView(this).apply {
-            text = "Azan və bildirişlər"
-            textSize = 23f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(ink)
-            gravity = Gravity.CENTER
-        })
-
-        root.addView(TextView(this).apply {
-            text = "Namaz vaxtı daxil olduqda Alieba sizə bildiriş göndərə və azan səsləndirə bilər."
-            textSize = 14f
-            setTextColor(0xff756a64.toInt())
-            gravity = Gravity.CENTER
-            setPadding(dp(8), dp(10), dp(8), dp(28))
-        })
-
-        val notifications = Switch(this).apply {
-            text = "Namaz bildirişləri"
-            textSize = 17f
-            isChecked = true
-            setTextColor(ink)
-            setPadding(dp(18), 0, dp(12), 0)
-
-            background = GradientDrawable().apply {
-                setColor(Color.WHITE)
-                cornerRadius = dp(16).toFloat()
-                setStroke(dp(1), 0xffeadfd8.toInt())
-            }
-        }
-
-        root.addView(
-            notifications,
-            LinearLayout.LayoutParams(-1, dp(64))
-        )
-        if (Build.VERSION.SDK_INT >= 33 &&
-            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
-                android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            root.addView(TextView(this).apply {
-                text = "Bildiriş icazəsini telefon ayarlarında aç"
-                textSize = 14f
-                gravity = Gravity.CENTER
-                setTextColor(green)
-                setOnClickListener {
-                    startActivity(Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                        .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName))
-                }
-            }, LinearLayout.LayoutParams(-1, dp(50)))
-        }
-
-        root.addView(TextView(this).apply {
-            text = "Sonradan Profil → Azan və namaz bildirişləri bölməsindən Fəcr, Zöhr, Əsr, Məğrib və İşa üçün ayrıca seçim edə bilərsiniz."
-            textSize = 13f
-            setTextColor(0xff8d817a.toInt())
-            setPadding(dp(8), dp(15), dp(8), dp(28))
-        })
-
-        val start = TextView(this).apply {
-            text = "Alieba-ya başla"
-            textSize = 17f
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-            setTextColor(Color.WHITE)
-
-            background = GradientDrawable().apply {
-                setColor(brown)
-                cornerRadius = dp(17).toFloat()
-            }
-
-            setOnClickListener {
-                val enabled = notifications.isChecked
-                if (enabled && Build.VERSION.SDK_INT >= 33 &&
+        return HabibV220Setup.notifications(
+            this,
+            permissionGranted = granted,
+            onPermission = {
+                if (
+                    Build.VERSION.SDK_INT >= 33 &&
                     checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
-                        android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                    // Wait for the user to accept or deny the Android dialog before leaving this page.
-                    requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 42)
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+                ) {
+                    requestPermissions(
+                        arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                        42
+                    )
+                }
+            },
+            onFinish = { enabled ->
+                if (
+                    enabled &&
+                    Build.VERSION.SDK_INT >= 33 &&
+                    checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+                ) {
+                    requestPermissions(
+                        arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                        42
+                    )
                 } else {
                     completeFirstSetup(enabled)
                 }
-            }
-        }
-
-        root.addView(
-            start,
-            LinearLayout.LayoutParams(-1, dp(62)).apply {
-                topMargin = dp(12)
+            },
+            onBack = {
+                setContentView(locationSetup())
             }
         )
-
-        root.addView(TextView(this).apply {
-            text = "‹ Məkan seçiminə qayıt"
-            textSize = 14f
-            gravity = Gravity.CENTER
-            setTextColor(ink)
-            setOnClickListener { setContentView(locationSetup()) }
-        }, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(6) })
-
-        return root
     }
 
     private fun completeFirstSetup(notificationsEnabled: Boolean) {
@@ -712,7 +417,7 @@ root.addView(TextView(this).apply {
         this.text=text; textSize=size;setTextColor(color); gravity=Gravity.CENTER
         if(bold) typeface=Typeface.DEFAULT_BOLD
     }
-    private fun home(): View = HabibV219Home.build(this)
+    private fun home(): View = HabibV220Home.build(this)
 
     private fun blend(a:Int,b:Int,f:Float):Int = Color.rgb(
         (Color.red(a)*(1-f)+Color.red(b)*f).toInt(),
