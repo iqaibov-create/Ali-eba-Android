@@ -47,6 +47,7 @@
 
         <activity android:name=".ZikrActivity" android:exported="false"/>
         <activity android:name=".QiblaActivity" android:exported="false"/>
+        <activity android:name=".HabibV221QuranActivity" android:exported="false"/>
         <activity android:name=".NativeContentActivity" android:exported="false"/>
         <activity android:name=".NativeNewsActivity" android:exported="false"/>
         <activity android:name=".NativeQaActivity" android:exported="false"/>

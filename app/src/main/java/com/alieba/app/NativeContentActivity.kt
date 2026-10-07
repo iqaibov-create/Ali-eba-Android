@@ -82,7 +82,10 @@ class NativeContentActivity : Activity() {
         baseScreen(titleFor(section))
 
         when (section) {
-            "quran" -> surahList()
+            "quran" -> {
+                val directSurah = intent.getIntExtra("surah_number", 0)
+                if (directSurah in 1..114) showSurah(directSurah) else surahList()
+            }
             "news" -> loadNews()
             "saved" -> showSaved()
             else -> loadContent()
