@@ -50,8 +50,11 @@ class HabibV222ProfileActivity : Activity() {
                     .getSignedInAccountFromIntent(data)
                     .getResult(com.google.android.gms.common.api.ApiException::class.java)
                 account.idToken?.let { firebaseLogin(it) }
-            } catch (_: Exception) {
-                Toast.makeText(this, "Google giriş alınmadı", Toast.LENGTH_LONG).show()
+            } catch (e: com.google.android.gms.common.api.ApiException) {
+                val extra = if (e.statusCode == 10) " Firebase release SHA-1 əlavə olunmalıdır: 54:AD:90:2B:E3:96:C6:49:37:5F:37:D0:09:B1:37:ED:9B:55:12:C7" else ""
+                Toast.makeText(this, "Google giriş alınmadı (kod ${e.statusCode}).$extra", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                Toast.makeText(this, "Google giriş alınmadı: ${e.localizedMessage ?: "naməlum xəta"}", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -202,8 +205,8 @@ class HabibV222ProfileActivity : Activity() {
                 Toast.makeText(this, "Google hesabına giriş edildi", Toast.LENGTH_SHORT).show()
                 render()
             }
-            .addOnFailureListener {
-                Toast.makeText(this, "Google giriş xətası. Firebase SHA-1/SHA-256 və google-services.json-u yoxla.", Toast.LENGTH_LONG).show()
+            .addOnFailureListener { error ->
+                Toast.makeText(this, "Google giriş xətası: ${error.localizedMessage ?: "naməlum xəta"}. Firebase release SHA-1/SHA-256 və yeni google-services.json tələb olunur.", Toast.LENGTH_LONG).show()
             }
     }
 }

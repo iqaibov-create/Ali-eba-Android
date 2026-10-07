@@ -17,13 +17,15 @@ class HabibV222WaveDrawable(
 
     override fun draw(canvas: Canvas) {
         val w = bounds.width().toFloat()
-        val h = bounds.height().toFloat()
         val base = 29f * density
         val cx = w / 2f
         val half = 88f * density
         val top = 1.5f * density
 
-        val path = Path().apply {
+        // V22.3: transparent üst hissə tünd xətt göstərməsin.
+        canvas.drawColor(fillColor)
+
+        val edge = Path().apply {
             moveTo(0f, base)
             lineTo(cx - half, base)
             cubicTo(
@@ -37,23 +39,17 @@ class HabibV222WaveDrawable(
                 cx + half, base
             )
             lineTo(w, base)
-            lineTo(w, h)
-            lineTo(0f, h)
-            close()
         }
-
-        paint.style = Paint.Style.FILL
-        paint.color = fillColor
-        canvas.drawPath(path, paint)
 
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 1f * density
         paint.color = lineColor
-        canvas.drawPath(path, paint)
+        canvas.drawPath(edge, paint)
     }
 
     override fun setAlpha(alpha: Int) { paint.alpha = alpha }
     override fun setColorFilter(colorFilter: ColorFilter?) { paint.colorFilter = colorFilter }
+
     @Suppress("DEPRECATION")
-    override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+    override fun getOpacity(): Int = PixelFormat.OPAQUE
 }

@@ -89,11 +89,14 @@ class HabibV221QuranActivity : Activity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(pageBg)
-            clipChildren = false
+            clipChildren = true
+            clipToPadding = true
         }
 
         val top = FrameLayout(this).apply {
             background = AliebaPatternDrawable(resources.displayMetrics.density)
+            elevation = dp(8).toFloat()
+            clipChildren = true
         }
 
         val headerRow = LinearLayout(this).apply {
@@ -152,6 +155,7 @@ class HabibV221QuranActivity : Activity() {
 
         val tabsWrap = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
+            elevation = dp(7).toFloat()
             gravity = Gravity.CENTER
             setPadding(dp(8), dp(4), dp(8), dp(4))
             background = rounded(0xffe9e9e9.toInt(), 24)
@@ -200,7 +204,7 @@ class HabibV221QuranActivity : Activity() {
             background = rounded(0xfffafafa.toInt(), 17, 0xffbfc1c3.toInt())
         }
 
-        val searchFrame = FrameLayout(this)
+        val searchFrame = FrameLayout(this).apply { elevation = dp(7).toFloat() }
         searchFrame.addView(
             finder,
             FrameLayout.LayoutParams(-1, dp(62))
@@ -231,7 +235,8 @@ class HabibV221QuranActivity : Activity() {
         val scroll = ScrollView(this).apply {
             isFillViewport = true
             overScrollMode = View.OVER_SCROLL_NEVER
-            clipToPadding = false
+            clipToPadding = true
+            clipChildren = true
         }
 
         val list = LinearLayout(this).apply {

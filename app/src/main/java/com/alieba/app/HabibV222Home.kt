@@ -209,10 +209,10 @@ object HabibV222Home {
             FrameLayout.LayoutParams(-1, dp(activity, 70), Gravity.BOTTOM).apply {
                 leftMargin = dp(activity, 11)
                 rightMargin = dp(activity, 11)
-                bottomMargin = dp(activity, 20)
+                bottomMargin = dp(activity, 16)
             }
         )
-        body.addView(hero, LinearLayout.LayoutParams(-1, dp(activity, 374)))
+        body.addView(hero, LinearLayout.LayoutParams(-1, dp(activity, 420)))
 
         // Panel hero-nun üstünə azca gəlir: yuxarı yumru künclərin arxasında məscid şəkli görünür.
         val sheet = LinearLayout(activity).apply {
@@ -309,10 +309,10 @@ object HabibV222Home {
         body.addView(
             sheet,
             LinearLayout.LayoutParams(-1, -2).apply {
-                topMargin = -dp(activity, 14)
+                topMargin = -dp(activity, 8)
             }
         )
-        body.addView(View(activity), LinearLayout.LayoutParams(-1, dp(activity, 12)))
+        body.addView(View(activity).apply { setBackgroundColor(Color.WHITE) }, LinearLayout.LayoutParams(-1, dp(activity, 4)))
 
         scroll.addView(body)
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
