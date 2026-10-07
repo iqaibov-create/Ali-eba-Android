@@ -192,7 +192,7 @@ class HabibV221QuranActivity : Activity() {
 
         val finder = EditText(this).apply {
             hint = "Surə adına görə axtar..."
-            hintTextColor = 0xff9ea0a3.toInt()
+            setHintTextColor(0xff9ea0a3.toInt())
             setTextColor(ink)
             textSize = 17f
             setSingleLine(true)
