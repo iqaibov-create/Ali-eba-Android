@@ -53,6 +53,9 @@ object HabibV226Home {
             )
             "profile" -> a.startActivity(Intent(a, HabibV222ProfileActivity::class.java))
             "settings" -> a.startActivity(Intent(a, NativeSettingsActivity::class.java))
+            
+            "qibla" -> a.startActivity(Intent(a, QiblaActivity::class.java))
+            "tasbeh", "zikr" -> a.startActivity(Intent(a, ZikrActivity::class.java))
             else -> a.startActivity(
                 Intent(a, NativeContentActivity::class.java).putExtra("section", target)
             )
@@ -82,7 +85,7 @@ object HabibV226Home {
         }
 
         val screenDp = a.resources.configuration.screenHeightDp
-        val heroDp = (screenDp * 0.46f).toInt().coerceIn(300, 382)
+        val heroDp = (screenDp * 0.40f).toInt().coerceIn(286, 336)
 
         val hero = FrameLayout(a).apply {
             clipChildren = false
@@ -227,7 +230,7 @@ object HabibV226Home {
 
         val sheet = LinearLayout(a).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(a, 16), dp(a, 11), dp(a, 16), dp(a, 8))
+            setPadding(dp(a, 13), dp(a, 9), dp(a, 13), dp(a, 6))
             setBackgroundColor(Color.TRANSPARENT)
             background = GradientDrawable().apply {
                 setColor(Color.WHITE)
@@ -240,7 +243,7 @@ object HabibV226Home {
                 )
             }
             elevation = dp(a, 7).toFloat()
-            translationY = -dp(a, 16).toFloat()
+            translationY = -dp(a, 13).toFloat()
             clipChildren = false
             clipToPadding = false
         }
@@ -268,7 +271,10 @@ object HabibV226Home {
             Item("Mərsiyələr", R.drawable.ic_audio, 0xffc72f38.toInt(), 0xffe14a53.toInt(), "mersiye"),
             Item("Hədislər", R.drawable.ic_hadith, 0xff24b949.toInt(), 0xff42cf63.toInt(), "hadis"),
             Item("Mütəxəssis", R.drawable.ic_profile, 0xffffb51f.toInt(), 0xffffc950.toInt(), "experts"),
-            Item("Kitabxana", R.drawable.ic_library, 0xff4259dd.toInt(), 0xff6375e9.toInt(), "kitabxana")
+            Item("Kitabxana", R.drawable.ic_library, 0xff4259dd.toInt(), 0xff6375e9.toInt(), "kitabxana"),
+            Item("Kompas", R.drawable.ic_qibla, 0xff168a76.toInt(), 0xff2aa992.toInt(), "qibla"),
+            Item("Təsbeh", R.drawable.ic_tasbeh, 0xff8d60cc.toInt(), 0xffb77bdc.toInt(), "tasbeh"),
+            Item("Zikr", R.drawable.ic_dua, 0xffbd8a35.toInt(), 0xffdfa94d.toInt(), "zikr")
         )
 
         val grid = LinearLayout(a).apply {
@@ -276,7 +282,7 @@ object HabibV226Home {
             gravity = Gravity.CENTER
         }
 
-        for (r in 0 until 3) {
+        for (r in 0 until 4) {
             val row = LinearLayout(a).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
@@ -308,13 +314,13 @@ object HabibV226Home {
                     },
                     FrameLayout.LayoutParams(-1, -1)
                 )
-                cell.addView(iconBox, LinearLayout.LayoutParams(dp(a, 50), dp(a, 50)))
+                cell.addView(iconBox, LinearLayout.LayoutParams(dp(a, 45), dp(a, 45)))
                 cell.addView(
-                    text(a, item.title, 9.4f, 0xff2e3236.toInt()).apply {
+                    text(a, item.title, 8.8f, 0xff2e3236.toInt()).apply {
                         maxLines = 2
                         setPadding(0, dp(a, 5), 0, 0)
                     },
-                    LinearLayout.LayoutParams(-1, dp(a, 25))
+                    LinearLayout.LayoutParams(-1, dp(a, 20))
                 )
                 row.addView(cell, LinearLayout.LayoutParams(0, -1, 1f))
             }
@@ -325,7 +331,7 @@ object HabibV226Home {
         page.addView(sheet, LinearLayout.LayoutParams(-1, 0, 1f))
 
         root.addView(page, LinearLayout.LayoutParams(-1, 0, 1f))
-        root.addView(AliebaBottomNav.make(a, "home"), LinearLayout.LayoutParams(-1, dp(a, 92)))
+        root.addView(AliebaBottomNav.make(a, "home"), LinearLayout.LayoutParams(-1, dp(a, 88)))
         return root
     }
 
@@ -370,7 +376,7 @@ object HabibV226Home {
             )
             row.addView(
                 card,
-                LinearLayout.LayoutParams(0, dp(a, 58), 1f).apply {
+                LinearLayout.LayoutParams(0, dp(a, 54), 1f).apply {
                     setMargins(dp(a, 2), 0, dp(a, 2), 0)
                 }
             )
