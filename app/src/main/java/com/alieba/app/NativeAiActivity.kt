@@ -7,8 +7,10 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.speech.RecognizerIntent
-import android.speech.tts.TextToSpeech
+import android.media.MediaPlayer
+import android.media.MediaRecorder
+import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -18,9 +20,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.Locale
 
-class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
+class NativeAiActivity : Activity() {
 
     private lateinit var answerText: TextView
     private lateinit var voiceOrb: FrameLayout
@@ -31,10 +32,13 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
 
     private var busy = false
     private var speakNext = false
-    private var tts: TextToSpeech? = null
+    private var mediaPlayer: MediaPlayer? = null
+    private val speechSerial = AtomicInteger(0)
 
-    private val speechRequest = 778
     private val micPermissionRequest = 779
+    private var recorder: MediaRecorder? = null
+    private var voiceFile: File? = null
+    private var recording = false
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
@@ -70,26 +74,18 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
         window.statusBarColor = 0x66000000
         window.navigationBarColor = 0xff020318.toInt()
 
-        tts = TextToSpeech(this, this)
         setContentView(build())
     }
 
-    override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            val result = tts?.setLanguage(Locale("az", "AZ"))
-            if (
-                result == TextToSpeech.LANG_MISSING_DATA ||
-                result == TextToSpeech.LANG_NOT_SUPPORTED
-            ) {
-                tts?.setLanguage(Locale("tr", "TR"))
-            }
-        }
-    }
-
     override fun onDestroy() {
-        tts?.stop()
-        tts?.shutdown()
-        tts = null
+        speechSerial.incrementAndGet()
+        if (recording) runCatching { recorder?.stop() }
+        recorder?.release()
+        recorder = null
+        voiceFile?.delete()
+        voiceFile = null
+        mediaPlayer?.release()
+        mediaPlayer = null
         super.onDestroy()
     }
 
@@ -102,7 +98,7 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
         val sheet = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(22), dp(22), dp(22), dp(22))
+            setPadding(dp(16), dp(15), dp(16), dp(14))
             background = GradientDrawable().apply {
                 setColor(0xff020318.toInt())
                 cornerRadius = dp(38).toFloat()
@@ -117,7 +113,7 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
         sheet.addView(
             title,
             LinearLayout.LayoutParams(-1, -2).apply {
-                bottomMargin = dp(18)
+                bottomMargin = dp(8)
             }
         )
 
@@ -138,22 +134,22 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
                 setImageResource(R.drawable.ic_alieba_ai)
                 setColorFilter(Color.WHITE)
                 scaleType = ImageView.ScaleType.CENTER_INSIDE
-                setPadding(dp(24), dp(24), dp(24), dp(24))
+                setPadding(dp(18), dp(18), dp(18), dp(18))
             },
             FrameLayout.LayoutParams(-1, -1)
         )
 
         sheet.addView(
             voiceOrb,
-            LinearLayout.LayoutParams(dp(94), dp(94)).apply {
+            LinearLayout.LayoutParams(dp(70), dp(70)).apply {
                 gravity = Gravity.CENTER_HORIZONTAL
-                bottomMargin = dp(28)
+                bottomMargin = dp(10)
             }
         )
 
         answerText = text(
             "Necə kömək edə biləcəyimi söyləyin",
-            16f,
+            14f,
             0xffc7c8d8.toInt(),
             true
         ).apply {
@@ -165,12 +161,17 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
             }
         }
 
+        val answerScroll = ScrollView(this).apply {
+            isVerticalScrollBarEnabled = true
+            isFillViewport = false
+            addView(answerText, FrameLayout.LayoutParams(-1, -2))
+        }
         sheet.addView(
-            answerText,
+            answerScroll,
             LinearLayout.LayoutParams(-1, 0, 1f).apply {
                 leftMargin = dp(8)
                 rightMargin = dp(8)
-                bottomMargin = dp(18)
+                bottomMargin = dp(8)
             }
         )
 
@@ -199,7 +200,7 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
                         ask(item.second)
                     }
                 },
-                LinearLayout.LayoutParams(-2, dp(42)).apply {
+                LinearLayout.LayoutParams(-2, dp(34)).apply {
                     rightMargin = dp(8)
                 }
             )
@@ -208,8 +209,8 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
         quickScroll.addView(quick)
         sheet.addView(
             quickScroll,
-            LinearLayout.LayoutParams(-1, dp(50)).apply {
-                bottomMargin = dp(16)
+            LinearLayout.LayoutParams(-1, dp(40)).apply {
+                bottomMargin = dp(6)
             }
         )
 
@@ -266,13 +267,13 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
             text("◎", 23f, Color.WHITE, true).apply { gravity = Gravity.CENTER },
             FrameLayout.LayoutParams(-1, -1)
         )
-        bottom.addView(language, LinearLayout.LayoutParams(dp(50), dp(50)))
+        bottom.addView(language, LinearLayout.LayoutParams(dp(44), dp(44)))
 
         bottom.addView(
             text("Ortadakı işarəyə basıb danış", 11.5f, Color.WHITE, true).apply {
                 gravity = Gravity.CENTER
             },
-            LinearLayout.LayoutParams(0, dp(50), 1f)
+            LinearLayout.LayoutParams(0, dp(44), 1f)
         )
 
         keyboardButton = FrameLayout(this).apply {
@@ -283,12 +284,14 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
             text("⌨", 22f, Color.WHITE, true).apply { gravity = Gravity.CENTER },
             FrameLayout.LayoutParams(-1, -1)
         )
-        bottom.addView(keyboardButton, LinearLayout.LayoutParams(dp(50), dp(50)))
+        bottom.addView(keyboardButton, LinearLayout.LayoutParams(dp(44), dp(44)))
 
-        sheet.addView(bottom, LinearLayout.LayoutParams(-1, dp(52)))
+        sheet.addView(bottom, LinearLayout.LayoutParams(-1, dp(44)))
 
         val screenH = resources.displayMetrics.heightPixels
-        val desired = (screenH * 0.58f).toInt().coerceIn(dp(420), dp(610))
+        val desired = (screenH * 0.43f).toInt()
+            .coerceIn(dp(320), dp(445))
+            .coerceAtMost(screenH - dp(48))
 
         root.addView(
             sheet,
@@ -354,55 +357,179 @@ class NativeAiActivity : Activity(), TextToSpeech.OnInitListener {
         }
     }
 
+    // ElevenLabs Scribe: Google speech recognizer işlədilmir.
+    // Mikrofon ikonuna birinci basanda yazılır, ikinci basanda göndərilir.
     private fun startVoice() {
+        if (recording) {
+            finishVoice()
+            return
+        }
+        var localFile: File? = null
         try {
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(
-                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-                )
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "az-AZ")
-                putExtra(RecognizerIntent.EXTRA_PROMPT, "Dini sualınızı danışın")
-            }
-            startActivityForResult(intent, speechRequest)
+            localFile = File.createTempFile("alieba-mic-", ".m4a", cacheDir)
+            @Suppress("DEPRECATION")
+            val mr = if (android.os.Build.VERSION.SDK_INT >= 31) MediaRecorder(this) else MediaRecorder()
+            recorder = mr
+            mr.setAudioSource(MediaRecorder.AudioSource.MIC)
+            mr.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            mr.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            mr.setAudioEncodingBitRate(96000)
+            mr.setAudioSamplingRate(44100)
+            mr.setOutputFile(localFile.absolutePath)
+            mr.prepare()
+            mr.start()
+            recorder = mr
+            voiceFile = localFile
+            recording = true
+            voiceOrb.alpha = 0.60f
+            answerText.text = "Dinləyirəm… Bitirmək üçün yenidən mikrofona toxun."
+            voiceOrb.postDelayed({
+                if (recording && !isFinishing) finishVoice()
+            }, 25000L)
         } catch (_: Exception) {
-            Toast.makeText(
-                this,
-                "Telefonda səsli tanıma xidməti tapılmadı.",
-                Toast.LENGTH_LONG
-            ).show()
+            runCatching { recorder?.release() }
+            recorder = null
+            recording = false
+            localFile?.delete()
+            voiceOrb.alpha = 1f
+            Toast.makeText(this, "Mikrofonu açmaq mümkün olmadı.", Toast.LENGTH_LONG).show()
         }
     }
 
-    @Deprecated("Speech recognition compatibility")
-    override fun onActivityResult(
-        requestCode: Int,
-        resultCode: Int,
-        data: Intent?
-    ) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        if (requestCode == speechRequest && resultCode == RESULT_OK) {
-            val spoken =
-                data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                    ?.firstOrNull()
-                    .orEmpty()
-
-            if (spoken.isNotBlank()) {
-                speakNext = true
-                ask(spoken)
+    private fun finishVoice() {
+        if (!recording) return
+        recording = false
+        val file = voiceFile
+        voiceFile = null
+        val okay = runCatching { recorder?.stop(); true }.getOrDefault(false)
+        runCatching { recorder?.release() }
+        recorder = null
+        voiceOrb.alpha = 1f
+        if (!okay || file == null || !file.exists() || file.length() < 1200) {
+            file?.delete()
+            Toast.makeText(this, "Səs yazısı alınmadı. Yenidən yoxla.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        answerText.text = "Səs ElevenLabs ilə tanınır…"
+        Thread {
+            var connection: HttpURLConnection? = null
+            try {
+                val c = URL("https://alieba.ge/api/ai-stt.php")
+                    .openConnection() as HttpURLConnection
+                connection = c
+                c.requestMethod = "POST"
+                c.connectTimeout = 10000
+                c.readTimeout = 40000
+                c.doOutput = true
+                c.setRequestProperty("Content-Type", "audio/mp4")
+                c.setRequestProperty("Accept", "application/json")
+                file.inputStream().use { src ->
+                    c.outputStream.use { dst -> src.copyTo(dst) }
+                }
+                val response = (if (c.responseCode in 200..299) c.inputStream else c.errorStream)
+                    ?: throw IllegalStateException("Empty STT response")
+                val json = JSONObject(response.bufferedReader(Charsets.UTF_8).use { it.readText() })
+                if (!json.optBoolean("ok")) throw IllegalStateException("STT service not configured")
+                val spoken = json.optString("text").trim()
+                if (spoken.isEmpty()) throw IllegalArgumentException("Speech not recognized")
+                runOnUiThread {
+                    if (!isFinishing) {
+                        speakNext = true
+                        ask(spoken)
+                    }
+                }
+            } catch (_: Exception) {
+                runOnUiThread {
+                    if (!isFinishing) {
+                        answerText.text = "Səs tanınmadı. ElevenLabs server ayarını yoxla."
+                        Toast.makeText(this, "ElevenLabs səs tanıma mümkün olmadı.", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } finally {
+                connection?.disconnect()
+                file.delete()
             }
-        }
+        }.start()
     }
 
+    // Səsləndirmə ElevenLabs-a server üzərindən ötürülür.
+    // API açarı APK-yə yazılmır: alieba.ge/api/ai-tts.php serverdə saxlayır.
     private fun speak(value: String) {
         if (value.isBlank()) return
-        tts?.speak(
-            value,
-            TextToSpeech.QUEUE_FLUSH,
-            null,
-            "alieba_ai_answer"
-        )
+        val token = speechSerial.incrementAndGet()
+        Thread {
+            var tmp: File? = null
+            var conn: HttpURLConnection? = null
+            try {
+                val connection = URL("https://alieba.ge/api/ai-tts.php")
+                    .openConnection() as HttpURLConnection
+                conn = connection
+                connection.requestMethod = "POST"
+                connection.connectTimeout = 10000
+                connection.readTimeout = 30000
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                connection.setRequestProperty("Accept", "audio/mpeg")
+                val data = JSONObject().put("text", value.take(1500)).toString()
+                connection.outputStream.use { it.write(data.toByteArray(Charsets.UTF_8)) }
+                if (connection.responseCode !in 200..299 ||
+                    !connection.contentType.orEmpty().startsWith("audio/")) {
+                    throw IllegalStateException("ElevenLabs audio endpoint is not ready")
+                }
+                val file = File.createTempFile("alieba-voice-", ".mp3", cacheDir)
+                tmp = file
+                connection.inputStream.use { inputStream ->
+                    file.outputStream().use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+                if (token != speechSerial.get() || isFinishing) {
+                    file.delete()
+                    return@Thread
+                }
+                runOnUiThread {
+                    if (token != speechSerial.get() || isFinishing) {
+                        file.delete()
+                        return@runOnUiThread
+                    }
+                    mediaPlayer?.release()
+                    try {
+                        val player = MediaPlayer()
+                        player.setDataSource(file.absolutePath)
+                        player.setOnPreparedListener { it.start() }
+                        player.setOnCompletionListener {
+                            it.release()
+                            if (mediaPlayer === it) mediaPlayer = null
+                            file.delete()
+                        }
+                        player.setOnErrorListener { failed, _, _ ->
+                            failed.release()
+                            if (mediaPlayer === failed) mediaPlayer = null
+                            file.delete()
+                            true
+                        }
+                        mediaPlayer = player
+                        player.prepareAsync()
+                    } catch (_: Exception) {
+                        mediaPlayer = null
+                        file.delete()
+                    }
+                }
+            } catch (_: Exception) {
+                tmp?.delete()
+                if (token == speechSerial.get()) {
+                    runOnUiThread {
+                        if (!isFinishing) Toast.makeText(
+                            this,
+                            "ElevenLabs səsləndirmə xidməti serverdə hələ hazır deyil.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            } finally {
+                conn?.disconnect()
+            }
+        }.start()
     }
 
     private fun ask(raw: String) {

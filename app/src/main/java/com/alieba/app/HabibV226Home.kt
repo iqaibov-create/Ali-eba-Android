@@ -10,19 +10,12 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * V22.6 stable home.
- *
- * This screen intentionally does NOT use ScrollView/custom scene rendering for the
- * main home body. The previous white-screen bug left only the bottom navigation
- * visible on some Samsung devices. Here every visible block is placed directly
- * into a weighted LinearLayout with a normal ImageView hero.
- */
 object HabibV226Home {
 
     private fun dp(a: Activity, v: Int): Int =
@@ -53,9 +46,8 @@ object HabibV226Home {
             )
             "profile" -> a.startActivity(Intent(a, HabibV222ProfileActivity::class.java))
             "settings" -> a.startActivity(Intent(a, NativeSettingsActivity::class.java))
-            
             "qibla" -> a.startActivity(Intent(a, QiblaActivity::class.java))
-            "tasbeh", "zikr" -> a.startActivity(Intent(a, ZikrActivity::class.java))
+            "tasbeh" -> a.startActivity(Intent(a, ZikrActivity::class.java))
             else -> a.startActivity(
                 Intent(a, NativeContentActivity::class.java).putExtra("section", target)
             )
@@ -85,7 +77,7 @@ object HabibV226Home {
         }
 
         val screenDp = a.resources.configuration.screenHeightDp
-        val heroDp = (screenDp * 0.40f).toInt().coerceIn(286, 336)
+        val heroDp = (screenDp * 0.34f).toInt().coerceIn(234, 304)
 
         val hero = FrameLayout(a).apply {
             clipChildren = false
@@ -96,7 +88,7 @@ object HabibV226Home {
         hero.addView(
             ImageView(a).apply {
                 setImageResource(if (night) R.drawable.mosque_night else R.drawable.mosque_day)
-                scaleType = ImageView.ScaleType.CENTER_CROP
+                scaleType = ImageView.ScaleType.FIT_CENTER
                 contentDescription = "Alieba məscid"
             },
             FrameLayout.LayoutParams(-1, -1)
@@ -230,8 +222,7 @@ object HabibV226Home {
 
         val sheet = LinearLayout(a).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(a, 13), dp(a, 9), dp(a, 13), dp(a, 6))
-            setBackgroundColor(Color.TRANSPARENT)
+            setPadding(dp(a, 13), dp(a, 12), dp(a, 13), dp(a, 16))
             background = GradientDrawable().apply {
                 setColor(Color.WHITE)
                 setCornerRadii(
@@ -243,7 +234,6 @@ object HabibV226Home {
                 )
             }
             elevation = dp(a, 7).toFloat()
-            translationY = -dp(a, 13).toFloat()
             clipChildren = false
             clipToPadding = false
         }
@@ -273,8 +263,7 @@ object HabibV226Home {
             Item("Mütəxəssis", R.drawable.ic_profile, 0xffffb51f.toInt(), 0xffffc950.toInt(), "experts"),
             Item("Kitabxana", R.drawable.ic_library, 0xff4259dd.toInt(), 0xff6375e9.toInt(), "kitabxana"),
             Item("Kompas", R.drawable.ic_qibla, 0xff168a76.toInt(), 0xff2aa992.toInt(), "qibla"),
-            Item("Təsbeh", R.drawable.ic_tasbeh, 0xff8d60cc.toInt(), 0xffb77bdc.toInt(), "tasbeh"),
-            Item("Zikr", R.drawable.ic_dua, 0xffbd8a35.toInt(), 0xffdfa94d.toInt(), "zikr")
+            Item("Təsbeh", R.drawable.ic_tasbeh, 0xff8d60cc.toInt(), 0xffb77bdc.toInt(), "tasbeh")
         )
 
         val grid = LinearLayout(a).apply {
@@ -282,13 +271,19 @@ object HabibV226Home {
             gravity = Gravity.CENTER
         }
 
-        for (r in 0 until 4) {
+        val rows = (items.size + 2) / 3
+        for (r in 0 until rows) {
             val row = LinearLayout(a).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
             }
             for (c in 0 until 3) {
-                val item = items[r * 3 + c]
+                val index = r * 3 + c
+                if (index >= items.size) {
+                    row.addView(View(a), LinearLayout.LayoutParams(0, -1, 1f))
+                    continue
+                }
+                val item = items[index]
                 val cell = LinearLayout(a).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
@@ -324,13 +319,19 @@ object HabibV226Home {
                 )
                 row.addView(cell, LinearLayout.LayoutParams(0, -1, 1f))
             }
-            grid.addView(row, LinearLayout.LayoutParams(-1, 0, 1f))
+            grid.addView(row, LinearLayout.LayoutParams(-1, dp(a, 78)))
         }
 
-        sheet.addView(grid, LinearLayout.LayoutParams(-1, 0, 1f))
-        page.addView(sheet, LinearLayout.LayoutParams(-1, 0, 1f))
+        sheet.addView(grid, LinearLayout.LayoutParams(-1, -2))
+        page.addView(sheet, LinearLayout.LayoutParams(-1, -2))
 
-        root.addView(page, LinearLayout.LayoutParams(-1, 0, 1f))
+        val scroll = ScrollView(a).apply {
+            isFillViewport = true
+            isVerticalScrollBarEnabled = false
+            clipToPadding = false
+        }
+        scroll.addView(page, FrameLayout.LayoutParams(-1, -2))
+        root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         root.addView(AliebaBottomNav.make(a, "home"), LinearLayout.LayoutParams(-1, dp(a, 88)))
         return root
     }
