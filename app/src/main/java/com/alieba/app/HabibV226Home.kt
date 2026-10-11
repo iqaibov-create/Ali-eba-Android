@@ -16,34 +16,40 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * V22.10: A portrait mosque photo must not be FIT_CENTER'ed into a full-width banner.
+ * Portrait photo is on the right, text has its own space on the left.
+ * Prayer times are below (never over) the photo. Bottom nav stays outside the scroll.
+ */
 object HabibV226Home {
+    private fun dp(a: Activity, n: Int) = (n * a.resources.displayMetrics.density).toInt()
 
-    private fun dp(a: Activity, v: Int): Int =
-        (v * a.resources.displayMetrics.density).toInt()
+    private val ink = 0xff203a39.toInt()
+    private val green = 0xff0e695f.toInt()
 
-    private fun text(
-        a: Activity,
-        value: String,
-        size: Float,
-        color: Int,
-        bold: Boolean = false
-    ) = TextView(a).apply {
-        this.text = value
-        textSize = size
-        setTextColor(color)
-        gravity = Gravity.CENTER
-        includeFontPadding = false
-        if (bold) typeface = Typeface.DEFAULT_BOLD
-    }
+    private fun label(a: Activity, value: String, size: Float, color: Int, bold: Boolean = false) =
+        TextView(a).apply {
+            text = value
+            textSize = size
+            setTextColor(color)
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+            if (bold) typeface = Typeface.DEFAULT_BOLD
+        }
+
+    private fun round(a: Activity, color: Int, radius: Int, stroke: Int? = null) =
+        GradientDrawable().apply {
+            setColor(color)
+            cornerRadius = dp(a, radius).toFloat()
+            if (stroke != null) setStroke(dp(a, 1), stroke)
+        }
 
     private fun open(a: Activity, target: String) {
         when (target) {
             "quran" -> a.startActivity(Intent(a, HabibV221QuranActivity::class.java))
             "news" -> a.startActivity(Intent(a, NativeNewsActivity::class.java))
             "qa" -> a.startActivity(Intent(a, NativeQaActivity::class.java))
-            "experts" -> a.startActivity(
-                Intent(a, NativeQaActivity::class.java).putExtra("mode", "experts")
-            )
+            "experts" -> a.startActivity(Intent(a, NativeQaActivity::class.java).putExtra("mode", "experts"))
             "profile" -> a.startActivity(Intent(a, HabibV222ProfileActivity::class.java))
             "settings" -> a.startActivity(Intent(a, NativeSettingsActivity::class.java))
             "qibla" -> a.startActivity(Intent(a, QiblaActivity::class.java))
@@ -55,201 +61,147 @@ object HabibV226Home {
     }
 
     fun build(a: Activity): View {
-        val white = Color.WHITE
         val prayer = PrayerClock.times(a).ifEmpty { PrayerClock.displayTimes(a) }
         val now = SimpleDateFormat("HH:mm", Locale.US).format(Date())
-        val sunrise = prayer["sunrise"] ?: "06:00"
-        val sunset = prayer["sunset"] ?: "19:00"
-        val night = now < sunrise || now >= sunset
+        val night = now < (prayer["sunrise"] ?: "06:00") ||
+            now >= (prayer["sunset"] ?: "19:00")
 
         val root = LinearLayout(a).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(white)
-            clipChildren = false
-            clipToPadding = false
+            setBackgroundColor(Color.WHITE)
         }
-
+        val scroll = ScrollView(a).apply {
+            isFillViewport = true
+            isVerticalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+            clipToPadding = false
+            setBackgroundColor(Color.WHITE)
+        }
         val page = LinearLayout(a).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(white)
-            clipChildren = false
-            clipToPadding = false
+            setBackgroundColor(Color.WHITE)
         }
-
         val screenDp = a.resources.configuration.screenHeightDp
-        val heroDp = (screenDp * 0.34f).toInt().coerceIn(234, 304)
+        val widthDp = a.resources.configuration.screenWidthDp
+        val heroDp = (screenDp * 0.33f).toInt().coerceIn(218, 265)
 
+        // Full portrait mosque photo remains readable. No artificial blue side-bars.
         val hero = FrameLayout(a).apply {
-            clipChildren = false
-            clipToPadding = false
-            setBackgroundColor(if (night) 0xff14345e.toInt() else 0xff9bcfee.toInt())
+            setBackgroundColor(if (night) 0xff183948.toInt() else 0xff1d5d6a.toInt())
+            clipChildren = true
         }
-
+        val imageWidthDp = (heroDp * 341f / 512f).toInt()
         hero.addView(
             ImageView(a).apply {
                 setImageResource(if (night) R.drawable.mosque_night else R.drawable.mosque_day)
-                scaleType = ImageView.ScaleType.FIT_CENTER
+                scaleType = ImageView.ScaleType.CENTER_CROP
                 contentDescription = "Alieba məscid"
             },
-            FrameLayout.LayoutParams(-1, -1)
+            FrameLayout.LayoutParams(dp(a, imageWidthDp), -1, Gravity.RIGHT)
         )
-
         hero.addView(
             View(a).apply {
                 background = GradientDrawable(
-                    GradientDrawable.Orientation.TOP_BOTTOM,
+                    GradientDrawable.Orientation.LEFT_RIGHT,
                     intArrayOf(
-                        0x43041b2b,
-                        0x06041b2b,
-                        0x14000000,
-                        0x8a000000.toInt()
+                        0xff123842.toInt(), 0xff194f5b.toInt(),
+                        0x80255863.toInt(), 0x00173948
                     )
                 )
             },
             FrameLayout.LayoutParams(-1, -1)
         )
 
-        val top = LinearLayout(a).apply {
+        val header = LinearLayout(a).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(a, 17), dp(a, 11), dp(a, 17), 0)
+            setPadding(dp(a, 16), dp(a, 12), dp(a, 16), 0)
         }
-
         val logo = FrameLayout(a).apply {
             background = GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
-                intArrayOf(0xff16c6ad.toInt(), 0xff22b7d9.toInt())
+                intArrayOf(0xff19b9a0.toInt(), 0xff21b7d3.toInt())
             ).apply {
-                cornerRadius = dp(a, 15).toFloat()
-                setStroke(dp(a, 1), 0xccffffff.toInt())
+                cornerRadius = dp(a, 13).toFloat()
+                setStroke(dp(a, 1), 0x88ffffff.toInt())
             }
         }
-        logo.addView(
-            ImageView(a).apply {
-                setImageResource(R.drawable.ic_notification_mosque)
-                setColorFilter(Color.WHITE)
-                scaleType = ImageView.ScaleType.CENTER_INSIDE
-                setPadding(dp(a, 10), dp(a, 10), dp(a, 10), dp(a, 10))
-            },
-            FrameLayout.LayoutParams(-1, -1)
-        )
-        top.addView(logo, LinearLayout.LayoutParams(dp(a, 48), dp(a, 48)))
-
+        logo.addView(ImageView(a).apply {
+            setImageResource(R.drawable.ic_notification_mosque)
+            setColorFilter(Color.WHITE)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            setPadding(dp(a, 10), dp(a, 10), dp(a, 10), dp(a, 10))
+        }, FrameLayout.LayoutParams(-1, -1))
+        header.addView(logo, LinearLayout.LayoutParams(dp(a, 43), dp(a, 43)))
         val brand = LinearLayout(a).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(a, 10), 0, 0, 0)
+            setPadding(dp(a, 9), 0, 0, 0)
         }
-        brand.addView(text(a, "Alieba", 18f, Color.WHITE, true).apply { gravity = Gravity.START })
-        brand.addView(text(a, "İmanla yaşa", 10f, 0xffeef7f5.toInt()).apply {
+        brand.addView(label(a, "Alieba", 18f, Color.WHITE, true).apply {
             gravity = Gravity.START
-            setPadding(0, dp(a, 2), 0, 0)
         })
-        top.addView(brand, LinearLayout.LayoutParams(0, dp(a, 50), 1f))
+        brand.addView(label(a, "İmanla yaşa", 10f, 0xffe1f0ef.toInt()).apply {
+            gravity = Gravity.START
+        })
+        header.addView(brand, LinearLayout.LayoutParams(0, dp(a, 45), 1f))
+        header.addView(ImageView(a).apply {
+            setImageResource(R.drawable.ic_profile)
+            setColorFilter(Color.WHITE)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dp(a, 10), dp(a, 10), dp(a, 10), dp(a, 10))
+            background = round(a, 0xaa133745.toInt(), 25, 0xaaffffff.toInt())
+            setOnClickListener { open(a, "profile") }
+            contentDescription = "Profil"
+        }, LinearLayout.LayoutParams(dp(a, 43), dp(a, 43)))
+        hero.addView(header, FrameLayout.LayoutParams(-1, dp(a, 66), Gravity.TOP))
 
-        top.addView(
-            ImageView(a).apply {
-                setImageResource(R.drawable.ic_profile)
-                setColorFilter(Color.WHITE)
-                scaleType = ImageView.ScaleType.CENTER_INSIDE
-                setPadding(dp(a, 10), dp(a, 10), dp(a, 10), dp(a, 10))
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(0x45132432)
-                    setStroke(dp(a, 1), 0xaaffffff.toInt())
-                }
-                setOnClickListener { open(a, "profile") }
-            },
-            LinearLayout.LayoutParams(dp(a, 46), dp(a, 46))
-        )
-        hero.addView(top, FrameLayout.LayoutParams(-1, dp(a, 68), Gravity.TOP))
-
-        val middle = LinearLayout(a).apply {
+        val slogan = LinearLayout(a).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(dp(a, 28), 0, dp(a, 28), 0)
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(a, 2), 0, dp(a, 1), 0)
         }
-        middle.addView(
-            text(
-                a,
-                if (night) "Həyatını Allahın rəngi ilə boya" else "Hər gün Allaha daha yaxın",
-                22f,
-                Color.WHITE,
-                true
-            ).apply {
-                typeface = Typeface.create("serif", Typeface.BOLD)
-                maxLines = 2
-                setShadowLayer(dp(a, 2).toFloat(), 0f, dp(a, 1).toFloat(), 0xaa00151d.toInt())
-            }
-        )
-        middle.addView(
-            View(a).apply { setBackgroundColor(0xddffffff.toInt()) },
-            LinearLayout.LayoutParams(dp(a, 64), dp(a, 1)).apply {
-                gravity = Gravity.CENTER_HORIZONTAL
-                topMargin = dp(a, 8)
-                bottomMargin = dp(a, 8)
-            }
-        )
-        middle.addView(
-            text(
-                a,
-                if (night) "Qəlblər Allahı zikr etməklə rahatlıq tapır. • Rəd, 28"
-                else "Dua ilə başla, imanla yaşa, xeyirlə davam et.",
-                9.5f,
-                0xfff6f9f8.toInt()
-            ).apply {
-                maxLines = 2
-                setShadowLayer(dp(a, 2).toFloat(), 0f, dp(a, 1).toFloat(), 0xaa00151d.toInt())
-            }
-        )
-        hero.addView(
-            middle,
-            FrameLayout.LayoutParams(-1, dp(a, 116), Gravity.TOP).apply {
-                topMargin = dp(a, 74)
-            }
-        )
-
-        hero.addView(
-            prayerStrip(a, prayer),
-            FrameLayout.LayoutParams(-1, dp(a, 66), Gravity.BOTTOM).apply {
-                leftMargin = dp(a, 9)
-                rightMargin = dp(a, 9)
-                bottomMargin = dp(a, 16)
-            }
-        )
-
+        slogan.addView(label(a,
+            if (night) "Qəlbin nurla dolsun" else "Hər gün Allaha\nbir addım yaxın",
+            18f, Color.WHITE, true
+        ).apply {
+            gravity = Gravity.START
+            maxLines = 3
+            typeface = Typeface.create("serif", Typeface.BOLD)
+        })
+        slogan.addView(label(a, "Dua ilə başla,\nimanla davam et.", 11f,
+            0xffd4e7e6.toInt()).apply {
+            gravity = Gravity.START
+            setPadding(0, dp(a, 9), 0, 0)
+        })
+        hero.addView(slogan, FrameLayout.LayoutParams(
+            dp(a, (widthDp * 0.46f).toInt().coerceAtMost(195)), dp(a, 115),
+            Gravity.LEFT or Gravity.CENTER_VERTICAL
+        ).apply { leftMargin = dp(a, 18); topMargin = dp(a, 35) })
         page.addView(hero, LinearLayout.LayoutParams(-1, dp(a, heroDp)))
+
+        // Prayer information is outside of hero so the mosque remains visible.
+        val prayerArea = LinearLayout(a).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(a, 12), dp(a, 12), dp(a, 12), dp(a, 12))
+            setBackgroundColor(0xffedf7f4.toInt())
+        }
+        prayerArea.addView(label(a, "Namaz vaxtları", 13.5f, green, true).apply {
+            gravity = Gravity.START
+            setPadding(dp(a, 4), 0, 0, dp(a, 5))
+        })
+        prayerArea.addView(prayerGrid(a, prayer), LinearLayout.LayoutParams(-1, -2))
+        page.addView(prayerArea, LinearLayout.LayoutParams(-1, -2))
 
         val sheet = LinearLayout(a).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(a, 13), dp(a, 12), dp(a, 13), dp(a, 16))
-            background = GradientDrawable().apply {
-                setColor(Color.WHITE)
-                setCornerRadii(
-                    floatArrayOf(
-                        dp(a, 31).toFloat(), dp(a, 31).toFloat(),
-                        dp(a, 31).toFloat(), dp(a, 31).toFloat(),
-                        0f, 0f, 0f, 0f
-                    )
-                )
-            }
-            elevation = dp(a, 7).toFloat()
-            clipChildren = false
-            clipToPadding = false
+            setPadding(dp(a, 13), dp(a, 14), dp(a, 13), dp(a, 20))
+            setBackgroundColor(Color.WHITE)
         }
-
-        sheet.addView(
-            View(a).apply {
-                background = GradientDrawable().apply {
-                    setColor(0xffd7dddf.toInt())
-                    cornerRadius = dp(a, 3).toFloat()
-                }
-            },
-            LinearLayout.LayoutParams(dp(a, 38), dp(a, 4)).apply {
-                gravity = Gravity.CENTER_HORIZONTAL
-                bottomMargin = dp(a, 7)
-            }
-        )
+        sheet.addView(label(a, "Bölmələr", 14f, ink, true).apply {
+            gravity = Gravity.START
+            setPadding(dp(a, 6), 0, 0, dp(a, 8))
+        })
 
         data class Item(val title: String, val icon: Int, val c1: Int, val c2: Int, val target: String)
         val items = listOf(
@@ -265,123 +217,93 @@ object HabibV226Home {
             Item("Kompas", R.drawable.ic_qibla, 0xff168a76.toInt(), 0xff2aa992.toInt(), "qibla"),
             Item("Təsbeh", R.drawable.ic_tasbeh, 0xff8d60cc.toInt(), 0xffb77bdc.toInt(), "tasbeh")
         )
-
-        val grid = LinearLayout(a).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-        }
-
-        val rows = (items.size + 2) / 3
-        for (r in 0 until rows) {
+        val grid = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL }
+        for (r in 0 until (items.size + 2) / 3) {
             val row = LinearLayout(a).apply {
                 orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER
+                gravity = Gravity.CENTER_VERTICAL
             }
             for (c in 0 until 3) {
-                val index = r * 3 + c
-                if (index >= items.size) {
-                    row.addView(View(a), LinearLayout.LayoutParams(0, -1, 1f))
+                val idx = r * 3 + c
+                if (idx >= items.size) {
+                    row.addView(View(a), LinearLayout.LayoutParams(0, dp(a, 80), 1f))
                     continue
                 }
-                val item = items[index]
+                val item = items[idx]
                 val cell = LinearLayout(a).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
-                    setPadding(dp(a, 3), dp(a, 2), dp(a, 3), dp(a, 2))
+                    setPadding(dp(a, 2), dp(a, 4), dp(a, 2), dp(a, 2))
                     setOnClickListener { open(a, item.target) }
+                    contentDescription = item.title
                 }
                 val iconBox = FrameLayout(a).apply {
-                    background = GradientDrawable(
-                        GradientDrawable.Orientation.TL_BR,
-                        intArrayOf(item.c1, item.c2)
-                    ).apply {
-                        cornerRadius = dp(a, 16).toFloat()
-                        setStroke(dp(a, 1), 0x55ffffff)
+                    background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                        intArrayOf(item.c1, item.c2)).apply {
+                        cornerRadius = dp(a, 14).toFloat()
                     }
-                    elevation = dp(a, 2).toFloat()
                 }
-                iconBox.addView(
-                    ImageView(a).apply {
-                        setImageResource(item.icon)
-                        setColorFilter(Color.WHITE)
-                        scaleType = ImageView.ScaleType.CENTER_INSIDE
-                        setPadding(dp(a, 11), dp(a, 11), dp(a, 11), dp(a, 11))
-                    },
-                    FrameLayout.LayoutParams(-1, -1)
-                )
-                cell.addView(iconBox, LinearLayout.LayoutParams(dp(a, 45), dp(a, 45)))
-                cell.addView(
-                    text(a, item.title, 8.8f, 0xff2e3236.toInt()).apply {
-                        maxLines = 2
-                        setPadding(0, dp(a, 5), 0, 0)
-                    },
-                    LinearLayout.LayoutParams(-1, dp(a, 20))
-                )
-                row.addView(cell, LinearLayout.LayoutParams(0, -1, 1f))
+                iconBox.addView(ImageView(a).apply {
+                    setImageResource(item.icon)
+                    setColorFilter(Color.WHITE)
+                    scaleType = ImageView.ScaleType.CENTER_INSIDE
+                    setPadding(dp(a, 11), dp(a, 11), dp(a, 11), dp(a, 11))
+                }, FrameLayout.LayoutParams(-1, -1))
+                cell.addView(iconBox, LinearLayout.LayoutParams(dp(a, 48), dp(a, 48)))
+                cell.addView(label(a, item.title, 11.5f, ink).apply {
+                    maxLines = 2
+                    setPadding(0, dp(a, 5), 0, 0)
+                }, LinearLayout.LayoutParams(-1, dp(a, 26)))
+                row.addView(cell, LinearLayout.LayoutParams(0, dp(a, 90), 1f))
             }
-            grid.addView(row, LinearLayout.LayoutParams(-1, dp(a, 78)))
+            grid.addView(row, LinearLayout.LayoutParams(-1, -2))
         }
-
         sheet.addView(grid, LinearLayout.LayoutParams(-1, -2))
         page.addView(sheet, LinearLayout.LayoutParams(-1, -2))
-
-        val scroll = ScrollView(a).apply {
-            isFillViewport = true
-            isVerticalScrollBarEnabled = false
-            clipToPadding = false
-        }
         scroll.addView(page, FrameLayout.LayoutParams(-1, -2))
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         root.addView(AliebaBottomNav.make(a, "home"), LinearLayout.LayoutParams(-1, dp(a, 88)))
         return root
     }
 
-    private fun prayerStrip(a: Activity, prayer: Map<String, String>): View {
-        val active = PrayerClock.activeKey(a)
+    private fun prayerGrid(a: Activity, prayer: Map<String, String>): View {
+        val selectedKey = PrayerClock.activeKey(a)
         val symbols = listOf("☾", "☀", "☀", "☀", "☾", "☾")
-        val row = LinearLayout(a).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-
-        for (i in PrayerClock.keys.indices) {
-            val key = PrayerClock.keys[i]
-            val name = PrayerClock.displayNames[i]
-            val value = prayer[key] ?: "--:--"
-            val selected = active == key && value != "--:--"
-            val card = LinearLayout(a).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
-                setPadding(0, dp(a, 1), 0, dp(a, 1))
-                background = GradientDrawable().apply {
-                    cornerRadius = dp(a, 13).toFloat()
-                    setColor(if (selected) 0xddbd8a00.toInt() else 0x99111c28.toInt())
-                    setStroke(
-                        dp(a, if (selected) 2 else 1),
-                        if (selected) 0xffffd662.toInt() else 0x55ffffff
-                    )
+        val outer = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL }
+        for (r in 0 until (PrayerClock.keys.size + 2) / 3) {
+            val row = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL }
+            for (c in 0 until 3) {
+                val i = r * 3 + c
+                if (i >= PrayerClock.keys.size) {
+                    row.addView(View(a), LinearLayout.LayoutParams(0, dp(a, 65), 1f))
+                    continue
                 }
-                setOnClickListener { open(a, "settings") }
+                val key = PrayerClock.keys[i]
+                val value = prayer[key] ?: "--:--"
+                val selected = key == selectedKey && value != "--:--"
+                val card = LinearLayout(a).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER
+                    setPadding(dp(a, 3), dp(a, 2), dp(a, 3), dp(a, 2))
+                    background = round(a,
+                        if (selected) 0xfffff0c5.toInt() else Color.WHITE,
+                        12, if (selected) 0xffdca72b.toInt() else 0xffd3e8e2.toInt())
+                    setOnClickListener { open(a, "settings") }
+                }
+                card.addView(label(a, symbols.getOrElse(i) { "☾" } + "  " +
+                    PrayerClock.displayNames.getOrElse(i) { "" },
+                    10f, if (selected) 0xff76521c.toInt() else green, selected).apply {
+                    maxLines = 2
+                }, LinearLayout.LayoutParams(-1, dp(a, 25)))
+                card.addView(label(a, value, 15f,
+                    if (selected) 0xff8b6015.toInt() else ink, true),
+                    LinearLayout.LayoutParams(-1, dp(a, 24)))
+                row.addView(card, LinearLayout.LayoutParams(0, dp(a, 62), 1f).apply {
+                    setMargins(dp(a, 3), dp(a, 3), dp(a, 3), dp(a, 3))
+                })
             }
-            card.addView(
-                text(a, symbols[i], 10f, if (selected) 0xffffe28a.toInt() else Color.WHITE, true),
-                LinearLayout.LayoutParams(-1, dp(a, 15))
-            )
-            card.addView(
-                text(a, name, 6.2f, Color.WHITE, selected).apply { maxLines = 2 },
-                LinearLayout.LayoutParams(-1, dp(a, 20))
-            )
-            card.addView(
-                text(a, value, 9.5f, Color.WHITE, true),
-                LinearLayout.LayoutParams(-1, dp(a, 18))
-            )
-            row.addView(
-                card,
-                LinearLayout.LayoutParams(0, dp(a, 54), 1f).apply {
-                    setMargins(dp(a, 2), 0, dp(a, 2), 0)
-                }
-            )
+            outer.addView(row, LinearLayout.LayoutParams(-1, -2))
         }
-        return row
+        return outer
     }
 }
