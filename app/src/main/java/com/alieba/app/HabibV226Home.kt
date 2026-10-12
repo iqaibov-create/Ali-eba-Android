@@ -3,12 +3,12 @@ package com.alieba.app
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
-import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -16,13 +16,41 @@ import android.widget.TextView
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.max
 
 object HabibV226Home {
     private fun dp(a: Activity, n: Int) = (n * a.resources.displayMetrics.density).toInt()
 
     private val ink = 0xff1e3440.toInt()
     private val softText = 0xffdce8ee.toInt()
-    private val gold = 0xffd3a839.toInt()
+    /** A portrait photo filling a landscape hero must focus on the building, not the sky. */
+    private class MosqueImage(a: Activity, resId: Int) : ImageView(a) {
+        init {
+            setImageResource(resId)
+            scaleType = ImageView.ScaleType.MATRIX
+            contentDescription = "Ali-eba məscidi"
+        }
+
+        override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+            super.onSizeChanged(w, h, oldw, oldh)
+            val d = drawable ?: return
+            if (w <= 0 || h <= 0 || d.intrinsicWidth <= 0 || d.intrinsicHeight <= 0) return
+            val zoom = max(w.toFloat() / d.intrinsicWidth, h.toFloat() / d.intrinsicHeight)
+            val dx = (w - d.intrinsicWidth * zoom) / 2f
+            val overflow = (d.intrinsicHeight * zoom - h).coerceAtLeast(0f)
+            val m = Matrix().apply {
+                setScale(zoom, zoom)
+                postTranslate(dx, -overflow * 0.90f)
+            }
+            imageMatrix = m
+        }
+    }
+
+    private fun topCorners(a: Activity) = GradientDrawable().apply {
+        setColor(Color.WHITE)
+        val r = dp(a, 20).toFloat()
+        setCornerRadii(floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f))
+    }
 
     private fun label(
         a: Activity,
@@ -85,16 +113,11 @@ object HabibV226Home {
             setBackgroundColor(Color.WHITE)
         }
 
-        val heroHeight = dp(a, 300)
-        val hero = FrameLayout(a).apply {
-            clipChildren = true
-        }
+        val screenDp = a.resources.configuration.screenHeightDp
+        val heroHeight = dp(a, (screenDp * 0.43f).toInt().coerceIn(300, 340))
+        val hero = FrameLayout(a).apply { clipChildren = true }
         hero.addView(
-            ImageView(a).apply {
-                setImageResource(if (night) R.drawable.mosque_night else R.drawable.mosque_day)
-                scaleType = ImageView.ScaleType.CENTER_CROP
-                contentDescription = "Alieba məscid"
-            },
+            MosqueImage(a, if (night) R.drawable.mosque_night else R.drawable.mosque_day),
             FrameLayout.LayoutParams(-1, -1)
         )
         hero.addView(
@@ -102,10 +125,10 @@ object HabibV226Home {
                 background = GradientDrawable(
                     GradientDrawable.Orientation.TOP_BOTTOM,
                     intArrayOf(
-                        0x22000000,
-                        0x12000000,
-                        0x28000000,
-                        0x90000000.toInt()
+                        0x32000000,
+                        0x08000000,
+                        0x10000000,
+                        0x79000000
                     )
                 )
             },
@@ -159,63 +182,61 @@ object HabibV226Home {
         titleWrap.addView(label(
             a,
             if (night) "Həyatını\nAllahın rəngi ilə boya" else "Hər gün\nAllaha daha yaxın",
-            19f,
-            0xff102534.toInt(),
+            18f,
+            if (night) Color.WHITE else 0xff102534.toInt(),
             true
         ).apply {
             gravity = Gravity.CENTER
             typeface = Typeface.create("serif", Typeface.NORMAL)
+            setShadowLayer(dp(a, 1).toFloat(), 0f, 0f,
+                if (night) 0x88000000.toInt() else 0x22ffffff)
         })
         titleWrap.addView(label(
             a,
             if (night) "“Həqiqətən, Allah qəlbləri zikrlə rahatladır.”" else "“Allah zikr edənləri sevər.”",
-            10.5f,
-            0xff203848.toInt()
+            10.2f,
+            if (night) Color.WHITE else 0xff203848.toInt()
         ).apply {
             gravity = Gravity.CENTER
             setPadding(0, dp(a, 8), 0, 0)
         })
         hero.addView(titleWrap, FrameLayout.LayoutParams(-1, -2, Gravity.TOP).apply {
-            topMargin = dp(a, 62)
+            topMargin = dp(a, 65)
         })
 
         val dateCard = LinearLayout(a).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(a, 12), dp(a, 10), dp(a, 12), dp(a, 10))
-            background = round(a, 0xaa1f2328.toInt(), 14)
-            elevation = dp(a, 4).toFloat()
+            setPadding(dp(a, 7), dp(a, 6), dp(a, 7), dp(a, 6))
+            background = round(a, 0xa91f2328.toInt(), 10)
         }
-        val dateText = try {
-            SimpleDateFormat("dd MMMM, EEEE", Locale("az")).format(Date())
-        } catch (_: Exception) {
-            SimpleDateFormat("dd MMMM, EEEE", Locale.getDefault()).format(Date())
-        }
-        dateCard.addView(label(a, dateText, 10.5f, Color.WHITE, true).apply {
+        val dateText = SimpleDateFormat("dd MMMM", Locale("az")).format(Date())
+        val weekdayText = SimpleDateFormat("EEEE", Locale("az")).format(Date())
+        dateCard.addView(label(a, dateText, 9.4f, Color.WHITE, true).apply {
             gravity = Gravity.CENTER
+            maxLines = 1
         })
-        dateCard.addView(label(a, "Bu gün", 10f, 0xffd8e1e8.toInt()).apply {
+        dateCard.addView(label(a, weekdayText, 9f, 0xffd8e1e8.toInt()).apply {
             gravity = Gravity.CENTER
-            setPadding(0, dp(a, 4), 0, 0)
+            maxLines = 1
         })
-        hero.addView(dateCard, FrameLayout.LayoutParams(dp(a, 124), -2, Gravity.END or Gravity.BOTTOM).apply {
-            rightMargin = dp(a, 12)
-            bottomMargin = dp(a, 78)
+        hero.addView(dateCard, FrameLayout.LayoutParams(dp(a, 110), -2, Gravity.END or Gravity.BOTTOM).apply {
+            rightMargin = dp(a, 10)
+            bottomMargin = dp(a, 85)
         })
 
         hero.addView(prayerStrip(a, prayer), FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM).apply {
-            bottomMargin = dp(a, 12)
+            bottomMargin = dp(a, 10)
         })
         page.addView(hero, LinearLayout.LayoutParams(-1, heroHeight))
 
         val sheet = LinearLayout(a).apply {
             orientation = LinearLayout.VERTICAL
-            background = round(a, Color.WHITE, 24)
-            elevation = dp(a, 4).toFloat()
-            setPadding(dp(a, 14), dp(a, 14), dp(a, 14), dp(a, 18))
+            background = topCorners(a)
+            setPadding(dp(a, 9), dp(a, 10), dp(a, 9), dp(a, 10))
         }
         sheet.addView(label(a, "Bölmələr", 15f, ink, true).apply {
             gravity = Gravity.START
-            setPadding(dp(a, 6), 0, 0, dp(a, 6))
+            setPadding(dp(a, 9), 0, 0, dp(a, 2))
         })
 
         data class Item(val title: String, val icon: Int, val c1: Int, val c2: Int, val target: String)
@@ -236,23 +257,24 @@ object HabibV226Home {
         val grid = LinearLayout(a).apply {
             orientation = LinearLayout.VERTICAL
         }
-        val rows = (items.size + 2) / 3
+        val columns = 4
+        val rows = (items.size + columns - 1) / columns
         for (r in 0 until rows) {
             val row = LinearLayout(a).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
             }
-            for (c in 0 until 3) {
-                val idx = r * 3 + c
+            for (c in 0 until columns) {
+                val idx = r * columns + c
                 if (idx >= items.size) {
-                    row.addView(View(a), LinearLayout.LayoutParams(0, dp(a, 92), 1f))
+                    row.addView(View(a), LinearLayout.LayoutParams(0, dp(a, 72), 1f))
                     continue
                 }
                 val item = items[idx]
                 val cell = LinearLayout(a).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
-                    setPadding(dp(a, 2), dp(a, 4), dp(a, 2), dp(a, 6))
+                    setPadding(dp(a, 1), dp(a, 3), dp(a, 1), dp(a, 3))
                     setOnClickListener { open(a, item.target) }
                 }
                 val iconBox = FrameLayout(a).apply {
@@ -260,7 +282,7 @@ object HabibV226Home {
                         GradientDrawable.Orientation.TL_BR,
                         intArrayOf(item.c1, item.c2)
                     ).apply {
-                        cornerRadius = dp(a, 14).toFloat()
+                        cornerRadius = dp(a, 11).toFloat()
                     }
                     elevation = dp(a, 2).toFloat()
                 }
@@ -268,25 +290,22 @@ object HabibV226Home {
                     setImageResource(item.icon)
                     setColorFilter(Color.WHITE)
                     scaleType = ImageView.ScaleType.CENTER_INSIDE
-                    setPadding(dp(a, 11), dp(a, 11), dp(a, 11), dp(a, 11))
+                    setPadding(dp(a, 9), dp(a, 9), dp(a, 9), dp(a, 9))
                 }, FrameLayout.LayoutParams(-1, -1))
-                cell.addView(iconBox, LinearLayout.LayoutParams(dp(a, 46), dp(a, 46)))
-                cell.addView(label(a, item.title, 10.5f, ink).apply {
+                cell.addView(iconBox, LinearLayout.LayoutParams(dp(a, 40), dp(a, 40)))
+                cell.addView(label(a, item.title, 9.4f, ink).apply {
                     gravity = Gravity.CENTER
                     maxLines = 1
-                    setPadding(0, dp(a, 5), 0, 0)
+                    setPadding(0, dp(a, 4), 0, 0)
                 })
-                row.addView(cell, LinearLayout.LayoutParams(0, dp(a, 82), 1f))
+                row.addView(cell, LinearLayout.LayoutParams(0, dp(a, 69), 1f))
             }
             grid.addView(row, LinearLayout.LayoutParams(-1, -2))
         }
 
         sheet.addView(grid, LinearLayout.LayoutParams(-1, -2))
-        val wrap = FrameLayout(a).apply {
-            setPadding(0, dp(a, 8), 0, dp(a, 14))
-            addView(sheet, FrameLayout.LayoutParams(-1, -2))
-        }
-        page.addView(wrap, LinearLayout.LayoutParams(-1, -2))
+        // Only TOP corners are rounded. No dangling white oval or shadow above the fixed nav.
+        page.addView(sheet, LinearLayout.LayoutParams(-1, -2))
 
         scroll.addView(page, FrameLayout.LayoutParams(-1, -2))
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -296,11 +315,11 @@ object HabibV226Home {
 
     private fun prayerStrip(a: Activity, prayer: Map<String, String>): View {
         val selected = PrayerClock.activeKey(a)
-        val icons = listOf("☾", "☀", "☀", "☀", "☾", "☾")
-
+        val symbols = listOf("☾", "☀", "☀", "☀", "☾", "☾")
         val row = LinearLayout(a).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(dp(a, 10), 0, dp(a, 10), 0)
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(a, 5), 0, dp(a, 5), 0)
         }
         for (i in PrayerClock.keys.indices) {
             val key = PrayerClock.keys[i]
@@ -308,50 +327,33 @@ object HabibV226Home {
             val card = LinearLayout(a).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
-                setPadding(dp(a, 8), dp(a, 7), dp(a, 8), dp(a, 7))
+                setPadding(dp(a, 1), dp(a, 4), dp(a, 1), dp(a, 3))
                 background = round(
                     a,
-                    if (active) 0xccd6a93e.toInt() else 0xaa2a2629.toInt(),
-                    12,
-                    if (active) 0xfff0d37a.toInt() else 0x22ffffff
+                    if (active) 0xe5c79b2a.toInt() else 0xb025252b.toInt(),
+                    8,
+                    if (active) 0xfff0d37a.toInt() else null
                 )
                 setOnClickListener { open(a, "settings") }
             }
-            card.addView(label(
-                a,
-                PrayerClock.displayNames.getOrElse(i) { "" },
-                10f,
-                Color.WHITE,
-                active
-            ).apply { gravity = Gravity.CENTER })
-            card.addView(label(
-                a,
-                icons.getOrElse(i) { "☾" },
-                10f,
-                if (active) 0xfffff1b8.toInt() else 0xfff1f5f9.toInt()
-            ).apply {
+            val prayerName = PrayerClock.displayNames.getOrElse(i) { "" }
+            card.addView(label(a, prayerName, 8.3f, Color.WHITE, active).apply {
                 gravity = Gravity.CENTER
-                setPadding(0, dp(a, 2), 0, 0)
-            })
-            card.addView(label(
-                a,
-                prayer[key] ?: "--:--",
-                13f,
-                Color.WHITE,
-                true
-            ).apply {
+                maxLines = 2
+            }, LinearLayout.LayoutParams(-1, dp(a, 25)))
+            card.addView(label(a, symbols.getOrElse(i) { "☾" }, 8f,
+                if (active) 0xfffff3cf.toInt() else 0xffe8e9ec.toInt()).apply {
                 gravity = Gravity.CENTER
-                setPadding(0, dp(a, 2), 0, 0)
-            })
-            row.addView(card, LinearLayout.LayoutParams(dp(a, 72), dp(a, 74)).apply {
-                rightMargin = dp(a, 6)
+            }, LinearLayout.LayoutParams(-1, dp(a, 10)))
+            card.addView(label(a, prayer[key] ?: "--:--", 11f, Color.WHITE, true).apply {
+                gravity = Gravity.CENTER
+                maxLines = 1
+            }, LinearLayout.LayoutParams(-1, dp(a, 18)))
+            // 6 equal weighted cells: guaranteed no horizontal overflow.
+            row.addView(card, LinearLayout.LayoutParams(0, dp(a, 63), 1f).apply {
+                setMargins(dp(a, 2), 0, dp(a, 2), 0)
             })
         }
-
-        return HorizontalScrollView(a).apply {
-            isHorizontalScrollBarEnabled = false
-            overScrollMode = View.OVER_SCROLL_NEVER
-            addView(row, FrameLayout.LayoutParams(-2, -2))
-        }
+        return row
     }
 }
