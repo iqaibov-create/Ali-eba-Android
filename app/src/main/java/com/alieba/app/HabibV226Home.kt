@@ -77,6 +77,7 @@ object HabibV226Home {
         when (target) {
             "quran" -> a.startActivity(Intent(a, HabibV221QuranActivity::class.java))
             "news" -> a.startActivity(Intent(a, NativeNewsActivity::class.java))
+            "hijri_calendar" -> a.startActivity(Intent(a, NativeHijriCalendarActivity::class.java))
             "qa" -> a.startActivity(Intent(a, NativeQaActivity::class.java))
             "experts" -> a.startActivity(
                 Intent(a, NativeQaActivity::class.java).putExtra("mode", "experts")
@@ -234,18 +235,15 @@ object HabibV226Home {
             background = topCorners(a)
             setPadding(dp(a, 9), dp(a, 10), dp(a, 9), dp(a, 10))
         }
-        sheet.addView(label(a, "Bölmələr", 15f, ink, true).apply {
-            gravity = Gravity.START
-            setPadding(dp(a, 9), 0, 0, dp(a, 2))
-        })
 
         data class Item(val title: String, val icon: Int, val c1: Int, val c2: Int, val target: String)
         val items = listOf(
             Item("Quran", R.drawable.ic_quran, 0xff18c5aa.toInt(), 0xff35d7ba.toInt(), "quran"),
             Item("Məfatih", R.drawable.ic_dua, 0xffff8a64.toInt(), 0xffffa479.toInt(), "mafatih"),
             Item("Əhkam", R.drawable.ic_rules, 0xff1cb7e6.toInt(), 0xff33c7ef.toInt(), "ahkam"),
+            Item("Yeniliklər", R.drawable.ic_news_updates, 0xff278bf3.toInt(), 0xff45b4f7.toInt(), "news"),
             Item("Görüş", R.drawable.ic_profile, 0xff7d53e8.toInt(), 0xff9b72ef.toInt(), "experts"),
-            Item("Təqvim", R.drawable.ic_calendar, 0xffff58a0.toInt(), 0xffff76b3.toInt(), "news"),
+            Item("Təqvim", R.drawable.ic_hijri_calendar, 0xffff58a0.toInt(), 0xffff76b3.toInt(), "hijri_calendar"),
             Item("Hüseyniyyə", R.drawable.ic_audio, 0xffe0333a.toInt(), 0xfff04d57.toInt(), "mersiye"),
             Item("Hədislər", R.drawable.ic_hadith, 0xff2bb84b.toInt(), 0xff49cf69.toInt(), "hadis"),
             Item("Məsləhət", R.drawable.ic_chat, 0xffffc126.toInt(), 0xffffd54d.toInt(), "qa"),
@@ -257,7 +255,7 @@ object HabibV226Home {
         val grid = LinearLayout(a).apply {
             orientation = LinearLayout.VERTICAL
         }
-        val columns = 4
+        val columns = 3
         val rows = (items.size + columns - 1) / columns
         for (r in 0 until rows) {
             val row = LinearLayout(a).apply {
@@ -267,14 +265,14 @@ object HabibV226Home {
             for (c in 0 until columns) {
                 val idx = r * columns + c
                 if (idx >= items.size) {
-                    row.addView(View(a), LinearLayout.LayoutParams(0, dp(a, 72), 1f))
+                    row.addView(View(a), LinearLayout.LayoutParams(0, dp(a, 99), 1f))
                     continue
                 }
                 val item = items[idx]
                 val cell = LinearLayout(a).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
-                    setPadding(dp(a, 1), dp(a, 3), dp(a, 1), dp(a, 3))
+                    setPadding(dp(a, 2), dp(a, 6), dp(a, 2), dp(a, 4))
                     setOnClickListener { open(a, item.target) }
                 }
                 val iconBox = FrameLayout(a).apply {
@@ -282,7 +280,7 @@ object HabibV226Home {
                         GradientDrawable.Orientation.TL_BR,
                         intArrayOf(item.c1, item.c2)
                     ).apply {
-                        cornerRadius = dp(a, 11).toFloat()
+                        cornerRadius = dp(a, 15).toFloat()
                     }
                     elevation = dp(a, 2).toFloat()
                 }
@@ -290,15 +288,15 @@ object HabibV226Home {
                     setImageResource(item.icon)
                     setColorFilter(Color.WHITE)
                     scaleType = ImageView.ScaleType.CENTER_INSIDE
-                    setPadding(dp(a, 9), dp(a, 9), dp(a, 9), dp(a, 9))
+                    setPadding(dp(a, 13), dp(a, 13), dp(a, 13), dp(a, 13))
                 }, FrameLayout.LayoutParams(-1, -1))
-                cell.addView(iconBox, LinearLayout.LayoutParams(dp(a, 40), dp(a, 40)))
-                cell.addView(label(a, item.title, 9.4f, ink).apply {
+                cell.addView(iconBox, LinearLayout.LayoutParams(dp(a, 60), dp(a, 60)))
+                cell.addView(label(a, item.title, 11.3f, ink).apply {
                     gravity = Gravity.CENTER
                     maxLines = 1
                     setPadding(0, dp(a, 4), 0, 0)
                 })
-                row.addView(cell, LinearLayout.LayoutParams(0, dp(a, 69), 1f))
+                row.addView(cell, LinearLayout.LayoutParams(0, dp(a, 100), 1f))
             }
             grid.addView(row, LinearLayout.LayoutParams(-1, -2))
         }
