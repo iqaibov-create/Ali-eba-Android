@@ -648,8 +648,8 @@ class MainActivity : Activity() {
         val sound=label("Azan səsini seç və ya öz səsini yüklə",15f,green,true)
         box.addView(sound,LinearLayout.LayoutParams(-1,dp(45)))
         sound.setOnClickListener {
-            AlertDialog.Builder(this).setTitle("Azan səsi").setItems(arrayOf("Şiə azanı", "Azan 1", "Azan 2", "Telefonumdan azan seç")) {_,which->
-                when(which){0->AzanPrefs.setSound(this,"shia");1->AzanPrefs.setSound(this,"beautiful1");2->AzanPrefs.setSound(this,"beautiful2");3->{val pick=Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("audio/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);startActivityForResult(pick,98)}}
+            AlertDialog.Builder(this).setTitle("Azan səsi").setItems(arrayOf("Şiə azanı", "Azan 2", "Telefonumdan azan seç")) {_,which->
+                when(which){0->AzanPrefs.setSound(this,"shia");1->AzanPrefs.setSound(this,"beautiful2");2->{val pick=Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("audio/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);startActivityForResult(pick,98)}}
             }.show()
         }
         val refresh=label("Namaz vaxtlarını yenilə",15f,green,true)

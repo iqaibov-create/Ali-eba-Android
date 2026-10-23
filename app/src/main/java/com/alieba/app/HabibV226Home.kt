@@ -233,7 +233,7 @@ object HabibV226Home {
         val sheet = LinearLayout(a).apply {
             orientation = LinearLayout.VERTICAL
             background = topCorners(a)
-            setPadding(dp(a, 9), dp(a, 10), dp(a, 9), dp(a, 10))
+            setPadding(dp(a, 12), dp(a, 14), dp(a, 12), dp(a, 18))
         }
 
         data class Item(val title: String, val icon: Int, val c1: Int, val c2: Int, val target: String)
@@ -272,7 +272,8 @@ object HabibV226Home {
                 val cell = LinearLayout(a).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
-                    setPadding(dp(a, 2), dp(a, 6), dp(a, 2), dp(a, 4))
+                    setPadding(dp(a, 3), dp(a, 7), dp(a, 3), dp(a, 4))
+                    contentDescription = item.title
                     setOnClickListener { open(a, item.target) }
                 }
                 val iconBox = FrameLayout(a).apply {
@@ -280,7 +281,7 @@ object HabibV226Home {
                         GradientDrawable.Orientation.TL_BR,
                         intArrayOf(item.c1, item.c2)
                     ).apply {
-                        cornerRadius = dp(a, 15).toFloat()
+                        cornerRadius = dp(a, 17).toFloat()
                     }
                     elevation = dp(a, 2).toFloat()
                 }
@@ -290,13 +291,14 @@ object HabibV226Home {
                     scaleType = ImageView.ScaleType.CENTER_INSIDE
                     setPadding(dp(a, 13), dp(a, 13), dp(a, 13), dp(a, 13))
                 }, FrameLayout.LayoutParams(-1, -1))
-                cell.addView(iconBox, LinearLayout.LayoutParams(dp(a, 60), dp(a, 60)))
-                cell.addView(label(a, item.title, 11.3f, ink).apply {
+                cell.addView(iconBox, LinearLayout.LayoutParams(dp(a, 62), dp(a, 62)))
+                cell.addView(label(a, item.title, 12f, ink).apply {
                     gravity = Gravity.CENTER
                     maxLines = 1
-                    setPadding(0, dp(a, 4), 0, 0)
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    setPadding(0, dp(a, 6), 0, 0)
                 })
-                row.addView(cell, LinearLayout.LayoutParams(0, dp(a, 100), 1f))
+                row.addView(cell, LinearLayout.LayoutParams(0, dp(a, 102), 1f))
             }
             grid.addView(row, LinearLayout.LayoutParams(-1, -2))
         }

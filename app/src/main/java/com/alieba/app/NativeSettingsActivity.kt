@@ -62,8 +62,8 @@ class NativeSettingsActivity: Activity() {
    if(on) FirebaseMessaging.getInstance().subscribeToTopic("alieba_news") else FirebaseMessaging.getInstance().unsubscribeFromTopic("alieba_news")
   }
   option("Azan səsi seç / telefondan əlavə et"){
-   AlertDialog.Builder(this).setTitle("Azan səsi").setItems(arrayOf("Şiə azanı","Azan 1","Azan 2","Telefondan seç")){_,i->
-    when(i){0->AzanPrefs.setSound(this,"shia");1->AzanPrefs.setSound(this,"beautiful1");2->AzanPrefs.setSound(this,"beautiful2");3->{
+   AlertDialog.Builder(this).setTitle("Azan səsi").setItems(arrayOf("Şiə azanı","Azan 2","Telefondan seç")){_,i->
+    when(i){0->AzanPrefs.setSound(this,"shia");1->AzanPrefs.setSound(this,"beautiful2");2->{
      val pick=Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("audio/*").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
      startActivityForResult(pick,98)
     }}

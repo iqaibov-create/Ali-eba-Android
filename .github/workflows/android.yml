@@ -37,14 +37,29 @@ jobs:
           ALIEBA_KEYSTORE_PASSWORD: ${{ secrets.ALIEBA_KEYSTORE_PASSWORD }}
           ALIEBA_KEY_ALIAS: alieba
           ALIEBA_KEY_PASSWORD: ${{ secrets.ALIEBA_KEYSTORE_PASSWORD }}
+        shell: bash
         run: |
           if [ -z "$ALIEBA_KEYSTORE_PASSWORD" ]; then
             echo "::error::ALIEBA_KEYSTORE_PASSWORD secret yoxdur."
             exit 1
           fi
-          gradle assembleRelease
+
+          # Rebuild without task-output caching to avoid stale packaging artifacts.
+          # The second run reports expanded diagnostics if the first one fails.
+          if ! gradle --no-daemon --no-build-cache --max-workers=2 clean :app:assembleRelease --stacktrace; then
+            echo "::warning::First APK packaging attempt failed. Retrying with single worker and detailed logging."
+            rm -rf app/build
+            gradle --no-daemon --no-build-cache --max-workers=1 clean :app:assembleRelease --stacktrace --info
+          fi
+
+      - name: Verify release APK exists
+        shell: bash
+        run: |
+          test -s app/build/outputs/apk/release/app-release.apk
+          ls -lh app/build/outputs/apk/release/app-release.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Alieba-V21.7-release-apk
+          name: Alieba-V22.15-release-apk
           path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
